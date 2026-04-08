@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}数据分析 - 招聘网站投递行为分析{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>数据分析结果</h2>
+    {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('run_analysis') }}" class="btn btn-success">重新执行分析</a>
+    {% endif %}
+</div>
+
+{% if not results %}
+<div class="card">
+    <p>暂无分析数据，请管理员先执行分析任务。</p>
+</div>
+{% endif %}
+
+{% if results.get('city_distribution') %}
+<div class="card">
+    <h2>分析一：各城市投递量分布</h2>
+    {% set max_val = results['city_distribution'][0]['count'] if results['city_distribution'] else 1 %}
+    {% for item in results['city_distribution'] %}
+    <div style="margin-bottom: 8px;">
+        <span style="display: inline-block; width: 80px;">{{ item.key }}</span>
+        <div class="bar" style="display: inline-block; width: calc(100% - 150px); vertical-align: middle;">
+            <div class="bar-fill" style="width: {{ (item.count / max_val * 100)|int }}%;">
+                {{ item.count }}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if results.get('job_category') %}
+<div class="card">
+    <h2>分析二：职位类别投递热度</h2>
+    {% set max_val = results['job_category'][0]['count'] if results['job_category'] else 1 %}
+    {% for item in results['job_category'] %}
+    <div style="margin-bottom: 8px;">
+        <span style="display: inline-block; width: 80px;">{{ item.key }}</span>
+        <div class="bar" style="display: inline-block; width: calc(100% - 150px); vertical-align: middle;">
+            <div class="bar-fill" style="width: {{ (item.count / max_val * 100)|int }}%; background: #28a745;">
+                {{ item.count }}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if results.get('company_ranking') %}
+<div class="card">
+    <h2>分析三：公司投递量排名</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>排名</th>
+                <th>公司</th>
+                <th>投递量</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in results['company_ranking'][:10] %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ item.key }}</td>
+                <td>{{ item.count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if results.get('status_statistics') %}
+<div class="card">
+    <h2>分析四：投递状态统计</h2>
+    {% set max_val = results['status_statistics'][0]['count'] if results['status_statistics'] else 1 %}
+    {% for item in results['status_statistics'] %}
+    <div style="margin-bottom: 8px;">
+        <span style="display: inline-block; width: 80px;">{{ item.key }}</span>
+        <div class="bar" style="display: inline-block; width: calc(100% - 150px); vertical-align: middle;">
+            <div class="bar-fill" style="width: {{ (item.count / max_val * 100)|int }}%; background: #ffc107;">
+                {{ item.count }}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

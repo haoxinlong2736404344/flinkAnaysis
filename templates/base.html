@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>招聘网站职位信息分析</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>招聘网站职位信息分析系统</h1>
+            {% if user %}
+            <div class="user-info">
+                欢迎, {{ user.username }} ({{ user.role }}) |
+                <a href="{{ url_for('logout') }}">退出</a>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if user %}
+        <div class="nav">
+            <a href="{{ url_for('index') }}">首页</a>
+            <a href="{{ url_for('analysis1') }}">城市薪资分析</a>
+            <a href="{{ url_for('analysis2') }}">公司类型分析</a>
+            <a href="{{ url_for('analysis3') }}">学历要求分析</a>
+            <a href="{{ url_for('analysis4') }}">经验薪资分析</a>
+            {% if user.role == 'admin' %}
+            <a href="{{ url_for('user_manage') }}">用户管理</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+
+        <div class="footer">
+            <p>招聘数据分析系统 - 基于PyFlink+Flask</p>
+        </div>
+    </div>
+</body>
+</html>

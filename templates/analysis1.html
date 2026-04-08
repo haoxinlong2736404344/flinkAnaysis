@@ -1,0 +1,3020 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="analysis-page">
+    <!-- 页面标题和说明 -->
+    <div class="page-header">
+        <h1><i class="fas fa-chart-line"></i> 城市薪资分布分析</h1>
+        <p class="subtitle">基于大数据分析，洞察各城市薪资水平与就业市场分布</p>
+        <div class="stats-summary">
+            <div class="stat-card">
+                <div class="stat-icon" style="background-color: #4a7c59;">
+                    <i class="fas fa-city"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-value">{{ all_cities_data|length if all_cities_data else 0 }}</div>
+                    <div class="stat-label">分析城市数</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background-color: #6b9b7a;">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-value">6</div>
+                    <div class="stat-label">分析维度</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background-color: #8cba99;">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-value">424</div>
+                    <div class="stat-label">总城市数</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能导航 -->
+    <div class="function-nav">
+        <button class="nav-btn active" onclick="scrollToSection('section1')">
+            <i class="fas fa-chart-bar"></i> 薪资排行
+        </button>
+        <button class="nav-btn" onclick="scrollToSection('section2')">
+            <i class="fas fa-percent"></i> 分位数分析
+        </button>
+        <button class="nav-btn" onclick="scrollToSection('section3')">
+            <i class="fas fa-map-marked-alt"></i> 省级分析
+        </button>
+        <button class="nav-btn" onclick="scrollToSection('section4')">
+            <i class="fas fa-layer-group"></i> 梯队划分
+        </button>
+        <button class="nav-btn" onclick="scrollToSection('section5')">
+            <i class="fas fa-balance-scale"></i> 城市对比
+        </button>
+        <button class="nav-btn" onclick="scrollToSection('section6')">
+            <i class="fas fa-list"></i> 所有城市
+        </button>
+    </div>
+
+    <!-- 功能1：各城市薪资分布分析 -->
+    <section id="section1" class="analysis-section">
+        <div class="section-header">
+            <h2><i class="fas fa-chart-bar"></i> 功能1：各城市薪资分布分析</h2>
+            <p class="section-desc">查看各城市平均薪资排名和岗位分布情况</p>
+        </div>
+
+        {% if data %}
+        <div class="chart-container">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>城市平均薪资排行榜（前30名）</h3>
+                </div>
+                <div id="chart1-bar" class="chart-content"></div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>薪资与岗位数量关系（前50城市）</h3>
+                </div>
+                <div id="chart1-scatter" class="chart-content"></div>
+            </div>
+        </div>
+        {% else %}
+        <div class="no-data-card">
+            <div class="no-data-icon">
+                <i class="fas fa-database"></i>
+            </div>
+            <h3>暂无数据</h3>
+            <p>请确保数据文件已正确导入数据库</p>
+            <a href="{{ url_for('import_data') }}" class="btn-primary">
+                <i class="fas fa-upload"></i> 导入数据
+            </a>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- 功能2：城市薪资分位数深度分析 -->
+    <section id="section2" class="analysis-section">
+        <div class="section-header">
+            <h2><i class="fas fa-percent"></i> 功能2：城市薪资分位数深度分析</h2>
+            <p class="section-desc">查看各城市薪资分布的四分位数，了解薪资内部结构</p>
+        </div>
+
+        <div class="chart-container full-width">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>城市薪资四分位数对比</h3>
+                    <div class="chart-controls">
+                        <span class="control-label">排序方式：</span>
+                        <select class="chart-select" id="quantileSortSelect">
+                            <option value="q50">按中位数</option>
+                            <option value="q90">按90%分位</option>
+                            <option value="range">按薪资范围</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="quantile-chart" class="chart-content"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能3：省级区域薪资聚合分析 -->
+    <section id="section3" class="analysis-section">
+        <div class="section-header">
+            <h2><i class="fas fa-map-marked-alt"></i> 功能3：省级区域薪资聚合分析</h2>
+            <p class="section-desc">从省级视角分析薪资水平和岗位分布</p>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>各省平均薪资排名</h3>
+                    <div class="chart-controls">
+                        <span class="control-label">指标：</span>
+                        <select class="chart-select" id="provinceMetricSelect">
+                            <option value="avg_salary">平均薪资</option>
+                            <option value="median_salary">中位数</option>
+                            <option value="job_count">岗位数量</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="province-bar-chart" class="chart-content"></div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>省份岗位数量占比</h3>
+                    <div class="chart-controls">
+                        <span class="control-label">显示：</span>
+                        <select class="chart-select" id="provincePieSelect">
+                            <option value="all">全部省份</option>
+                            <option value="top10">前10省份</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="province-pie-chart" class="chart-content"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能4：城市薪资梯队划分与统计 -->
+    <section id="section4" class="analysis-section">
+        <div class="section-header">
+            <h2><i class="fas fa-layer-group"></i> 功能4：城市薪资梯队划分与统计</h2>
+            <p class="section-desc">按薪资区间划分城市梯队，快速定位目标城市</p>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>薪资梯队分布图</h3>
+                </div>
+                <div id="salary-tier-chart" class="chart-content"></div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>梯队内城市分布</h3>
+                    <div class="chart-controls">
+                        <span class="control-label">梯队：</span>
+                        <select class="chart-select" id="tierSelect" onchange="loadTierCities(this.value)">
+                            <option value="超高薪">超高薪</option>
+                            <option value="高薪">高薪</option>
+                            <option value="中高薪">中高薪</option>
+                            <option value="中等">中等</option>
+                            <option value="低薪">低薪</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="tier-detail-chart" class="chart-content"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能5：多目标城市个性化对比工具 -->
+    <section id="section5" class="analysis-section">
+        <div class="section-header">
+            <h2><i class="fas fa-balance-scale"></i> 功能5：多目标城市个性化对比工具</h2>
+            <p class="section-desc">选择3-5个城市进行横向对比分析</p>
+        </div>
+
+        <div class="city-comparison-tool">
+            <div class="tool-header">
+                <h3><i class="fas fa-sliders-h"></i> 对比工具</h3>
+                <div class="tool-actions">
+                    <button class="btn-secondary" onclick="clearComparison()">
+                        <i class="fas fa-trash"></i> 清空选择
+                    </button>
+                    <button class="btn-primary" onclick="runComparison()">
+                        <i class="fas fa-play"></i> 开始分析
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-body">
+                <div class="city-selector-panel">
+                    <div class="panel-header">
+                        <h4>选择对比城市 (3-5个)</h4>
+                        <div class="selected-count">
+                            <span id="selectedCount">0</span>/5
+                        </div>
+                    </div>
+
+                    <div class="search-box">
+                        <input type="text" id="citySearch" placeholder="搜索城市..." class="search-input">
+                        <i class="fas fa-search search-icon"></i>
+                    </div>
+
+                    <div class="city-list-container">
+                        <div id="cityList" class="city-list">
+                            <!-- 城市列表将通过JS动态加载 -->
+                        </div>
+                    </div>
+
+                    <div class="selected-cities">
+                        <div class="selected-header">已选城市：</div>
+                        <div id="selectedCitiesList" class="selected-list">
+                            <!-- 已选城市将在这里显示 -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comparison-results-panel">
+                    <div class="results-placeholder">
+                        <div class="placeholder-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h4>等待分析</h4>
+                        <p>选择3-5个城市后点击"开始分析"按钮</p>
+                    </div>
+                    <div id="comparisonResults" style="display: none;">
+                        <div id="comparison-chart" class="chart-content" style="height: 450px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能6：所有城市平均薪资与职位数量展示 -->
+    <section id="section6" class="analysis-section">
+        <div class="section-header">
+            <h2><i class="fas fa-list"></i> 功能6：所有城市平均薪资与职位数量展示</h2>
+            <p class="section-desc">查看所有城市的完整薪资数据</p>
+        </div>
+
+        {% if all_cities_data %}
+        <div class="data-card">
+            <div class="card-header">
+                <h3><i class="fas fa-table"></i> 所有城市薪资数据</h3>
+                <div class="card-actions">
+                    <div class="search-box">
+                        <input type="text" id="allCitySearch" placeholder="搜索城市..." class="search-input">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <button class="btn-secondary btn-sm" onclick="exportAllData()">
+                        <i class="fas fa-download"></i> 导出全部
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-controls">
+                <div class="table-info">
+                    共 <span class="highlight" id="totalCitiesCount">{{ all_cities_data|length }}</span> 个城市，
+                    显示 <span id="currentPageRange">1-30</span> 条
+                </div>
+                <div class="table-pagination">
+                    <select class="pagination-select" id="pageSizeSelect" onchange="changePageSize()">
+                        <option value="30">30条/页</option>
+                        <option value="50">50条/页</option>
+                        <option value="100">100条/页</option>
+                    </select>
+                    <button class="pagination-btn" onclick="prevPage()" id="prevPageBtn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span id="pageInfo">第1页</span>
+                    <button class="pagination-btn" onclick="nextPage()" id="nextPageBtn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table" id="all-cities-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>城市</th>
+                            <th>平均薪资</th>
+                            <th>岗位数量</th>
+                            <th>薪资梯队</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allCitiesTableBody">
+                        <!-- 表格数据将通过JavaScript动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="no-data-card">
+            <div class="no-data-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h3>数据加载中...</h3>
+            <p>正在从数据库加载所有城市数据</p>
+        </div>
+        {% endif %}
+    </section>
+</div>
+
+<!-- 样式部分保持不变 -->
+<style>
+
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #4a7c59;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideIn 0.3s ease;
+}
+
+.toast.error {
+    background: #ff6b6b;
+}
+
+.toast .toast-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.analysis-page {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.page-header {
+    background: linear-gradient(135deg, #4a7c59 0%, #6b9b7a 100%);
+    padding: 30px;
+    border-radius: 15px;
+    color: white;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 30px rgba(74, 124, 89, 0.2);
+}
+
+.page-header h1 {
+    font-size: 32px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.page-header .subtitle {
+    font-size: 16px;
+    opacity: 0.9;
+    margin-bottom: 25px;
+}
+
+.stats-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: transform 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.stat-info .stat-value {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.stat-info .stat-label {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.function-nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.nav-btn {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 50px;
+    padding: 12px 25px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+
+.nav-btn:hover {
+    border-color: #4a7c59;
+    color: #4a7c59;
+    transform: translateY(-2px);
+}
+
+.nav-btn.active {
+    background: #4a7c59;
+    border-color: #4a7c59;
+    color: white;
+    box-shadow: 0 5px 15px rgba(74, 124, 89, 0.3);
+}
+
+.analysis-section {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid #eee;
+}
+
+.section-header {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #f5f5f5;
+}
+
+.section-header h2 {
+    font-size: 24px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.section-desc {
+    color: #666;
+    font-size: 15px;
+}
+
+.chart-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.chart-container.full-width {
+    grid-template-columns: 1fr;
+}
+
+.chart-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e8e8e8;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.chart-header {
+    padding: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chart-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-label {
+    font-size: 14px;
+    color: #666;
+}
+
+.chart-select {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: white;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+}
+
+.chart-content {
+    height: 400px;
+    padding: 15px;
+}
+
+.data-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e8e8e8;
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: #4a7c59;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #3d6a4a;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: #f8f9fa;
+    color: #666;
+    border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.btn-sm {
+    padding: 6px 15px;
+    font-size: 13px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    font-size: 14px;
+}
+
+.data-table td {
+    padding: 15px;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+}
+
+.data-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.rank-badge {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    background: #4a7c59;
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.salary-display {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.salary-value {
+    font-weight: bold;
+    color: #4a7c59;
+    min-width: 100px;
+}
+
+.salary-bar {
+    flex: 1;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.salary-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6b9b7a, #4a7c59);
+    border-radius: 4px;
+}
+
+.job-count {
+    font-weight: bold;
+    color: #333;
+}
+
+.count-unit {
+    color: #666;
+    font-size: 12px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-danger { background: #ff6b6b; color: white; }
+.badge-warning { background: #ffd93d; color: #333; }
+.badge-info { background: #6bc5d2; color: white; }
+.badge-success { background: #6bcf7f; color: white; }
+.badge-secondary { background: #adb5bd; color: white; }
+
+.btn-action {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #dee2e6;
+    background: white;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-action:hover {
+    background: #4a7c59;
+    color: white;
+    border-color: #4a7c59;
+    transform: scale(1.1);
+}
+
+.no-data-card {
+    text-align: center;
+    padding: 60px 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 2px dashed #dee2e6;
+}
+
+.no-data-icon {
+    font-size: 48px;
+    color: #adb5bd;
+    margin-bottom: 20px;
+}
+
+.no-data-card h3 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.no-data-card p {
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+/* 城市对比工具样式 */
+.city-comparison-tool {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e8e8e8;
+    overflow: hidden;
+}
+
+.tool-header {
+    padding: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.tool-body {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: 500px;
+}
+
+.city-selector-panel {
+    border-right: 1px solid #e8e8e8;
+    padding: 20px;
+}
+
+.panel-header {
+    margin-bottom: 20px;
+}
+
+.panel-header h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.selected-count {
+    font-size: 24px;
+    font-weight: bold;
+    color: #4a7c59;
+    text-align: center;
+}
+
+.search-box {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 40px 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #4a7c59;
+    box-shadow: 0 0 0 3px rgba(74, 124, 89, 0.1);
+}
+
+.search-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+.city-list-container {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+}
+
+.city-list {
+    padding: 10px;
+}
+
+.city-item {
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s;
+}
+
+.city-item:hover {
+    background: #f8f9fa;
+}
+
+.city-item.selected {
+    background: #4a7c59;
+    color: white;
+}
+
+.city-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.selected-cities {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.selected-header {
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.selected-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.selected-city-tag {
+    background: #4a7c59;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 50px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.remove-tag {
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.remove-tag:hover {
+    opacity: 1;
+}
+
+.comparison-results-panel {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 500px;
+}
+
+#comparisonResults {
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+
+#comparison-chart {
+    width: 100%;
+    height: 450px !important;
+    min-height: 450px;
+}
+.results-placeholder {
+    text-align: center;
+    color: #6c757d;
+}
+
+.placeholder-icon {
+    font-size: 48px;
+    color: #adb5bd;
+    margin-bottom: 20px;
+}
+
+/* 表格控制样式 */
+.table-controls {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e8e8e8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+}
+
+.table-info {
+    color: #495057;
+}
+
+.highlight {
+    color: #4a7c59;
+    font-weight: bold;
+}
+
+.table-pagination {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.pagination-select {
+    padding: 6px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    background: white;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.pagination-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    background: white;
+    color: #495057;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #4a7c59;
+    color: white;
+    border-color: #4a7c59;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .chart-container {
+        grid-template-columns: 1fr;
+    }
+
+    .tool-body {
+        grid-template-columns: 1fr;
+    }
+
+    .city-selector-panel {
+        border-right: none;
+        border-bottom: 1px solid #e8e8e8;
+    }
+}
+
+@media (max-width: 768px) {
+    .analysis-page {
+        padding: 10px;
+    }
+
+    .page-header {
+        padding: 20px;
+    }
+
+    .page-header h1 {
+        font-size: 24px;
+    }
+
+    .analysis-section {
+        padding: 20px;
+    }
+
+    .stats-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .function-nav {
+        padding: 0 10px 10px;
+    }
+
+    .nav-btn {
+        padding: 10px 15px;
+        font-size: 13px;
+    }
+
+    .chart-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+
+    .card-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #4a7c59;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+}
+
+.toast.error {
+    background: #ff6b6b;
+}
+</style>
+
+<script>
+
+// 显示Toast消息
+function showToast(message, type = 'success') {
+    // 移除可能存在的旧toast
+    const oldToast = document.querySelector('.toast');
+    if (oldToast) {
+        oldToast.remove();
+    }
+
+    // 创建toast元素
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+
+    // 添加到页面
+    document.body.appendChild(toast);
+
+    // 3秒后自动移除
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 3000);
+}
+
+// 全局数据变量
+let cityData = {% if data %}{{ data|tojson|safe }}{% else %}[]{% endif %};
+let allCitiesData = {% if all_cities_data %}{{ all_cities_data|tojson|safe }}{% else %}[]{% endif %};
+
+// 分页相关变量
+let currentPage = 1;
+let pageSize = 30;
+let filteredCitiesData = [];
+
+// 页面滚动导航
+function scrollToSection(sectionId) {
+    const element = document.getElementById(sectionId);
+    if (element) {
+        element.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+
+    // 更新导航按钮状态
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
+}
+
+// 图表控制功能初始化
+function initChartControls() {
+    console.log('初始化图表控件...');
+
+    // 分位数排序选择
+    const quantileSortSelect = document.getElementById('quantileSortSelect');
+    if (quantileSortSelect) {
+        quantileSortSelect.addEventListener('change', function() {
+            updateQuantileChart();
+        });
+    }
+
+    // 省份指标选择
+    const provinceMetricSelect = document.getElementById('provinceMetricSelect');
+    if (provinceMetricSelect) {
+        provinceMetricSelect.addEventListener('change', function() {
+            updateProvinceBarChart();
+        });
+    }
+
+    // 省份饼图选择
+    const provincePieSelect = document.getElementById('provincePieSelect');
+    if (provincePieSelect) {
+        provincePieSelect.addEventListener('change', function() {
+            updateProvincePieChart();
+        });
+    }
+
+    // 梯队选择
+    const tierSelect = document.getElementById('tierSelect');
+    if (tierSelect) {
+        tierSelect.addEventListener('change', function() {
+            loadTierCities(this.value);
+        });
+    }
+}
+
+// 导出数据功能
+function exportData(tableId) {
+    const table = document.getElementById(tableId);
+    const rows = table.querySelectorAll('tr');
+    let csv = [];
+
+    rows.forEach(row => {
+        let rowData = [];
+        row.querySelectorAll('th, td').forEach(cell => {
+            // 排除操作列和图表列
+            if (!cell.querySelector('.btn-action') && !cell.querySelector('.salary-bar')) {
+                rowData.push(cell.innerText.replace(/,/g, ''));
+            }
+        });
+        csv.push(rowData.join(','));
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + csv.join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', '城市薪资数据.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// 添加城市到对比
+function addToComparison(cityName) {
+    // 检查是否已选中
+    const selectedCities = JSON.parse(localStorage.getItem('selectedCities') || '[]');
+    if (!selectedCities.includes(cityName)) {
+        if (selectedCities.length >= 5) {
+            showToast('最多只能选择5个城市进行对比', 'error');
+            return;
+        }
+        selectedCities.push(cityName);
+        localStorage.setItem('selectedCities', JSON.stringify(selectedCities));
+        updateSelectedCitiesDisplay();
+        showToast(`已添加 ${cityName} 到对比列表`);
+    }
+}
+
+// 更新已选城市显示
+function updateSelectedCitiesDisplay() {
+    const selectedCities = JSON.parse(localStorage.getItem('selectedCities') || '[]');
+    const container = document.getElementById('selectedCitiesList');
+    const countElement = document.getElementById('selectedCount');
+
+    countElement.textContent = selectedCities.length;
+    container.innerHTML = selectedCities.map(city => `
+        <span class="selected-city-tag">
+            ${city}
+            <span class="remove-tag" onclick="removeFromComparison('${city}')">
+                <i class="fas fa-times"></i>
+            </span>
+        </span>
+    `).join('');
+}
+
+// 从对比中移除城市
+function removeFromComparison(cityName) {
+    let selectedCities = JSON.parse(localStorage.getItem('selectedCities') || '[]');
+    selectedCities = selectedCities.filter(city => city !== cityName);
+    localStorage.setItem('selectedCities', JSON.stringify(selectedCities));
+    updateSelectedCitiesDisplay();
+    showToast(`已从对比列表中移除 ${cityName}`);
+}
+
+// 清空对比列表
+function clearComparison() {
+    if (confirm('确定要清空所有已选城市吗？')) {
+        localStorage.removeItem('selectedCities');
+        updateSelectedCitiesDisplay();
+        showToast('已清空对比列表');
+    }
+}
+
+// 运行对比分析
+function runComparison() {
+    const selectedCities = JSON.parse(localStorage.getItem('selectedCities') || '[]');
+
+    if (selectedCities.length < 3) {
+        showToast('请至少选择3个城市进行对比', 'error');
+        return;
+    }
+
+    if (selectedCities.length > 5) {
+        showToast('最多只能选择5个城市进行对比', 'error');
+        return;
+    }
+
+    console.log('开始对比分析，选中的城市:', selectedCities);
+
+    // 显示加载状态
+    const placeholder = document.querySelector('.results-placeholder');
+    const results = document.getElementById('comparisonResults');
+    if (placeholder) placeholder.style.display = 'none';
+    if (results) {
+        results.style.display = 'block';
+        // 强制重置容器尺寸
+        results.style.height = '450px';
+        results.style.minHeight = '450px';
+    }
+
+    // 显示加载动画
+    const chartContainer = document.getElementById('comparison-chart');
+    if (chartContainer) {
+        chartContainer.innerHTML = '<div style="text-align: center; padding: 50px;"><i class="fas fa-spinner fa-spin fa-3x" style="color: #4a7c59;"></i><p style="margin-top: 20px;">正在分析中...</p></div>';
+        // 确保容器有明确的高度
+        chartContainer.style.height = '450px';
+        chartContainer.style.minHeight = '450px';
+    }
+
+    // 发送请求获取对比数据
+    fetch('/api/city_comparison', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cities: selectedCities })
+    })
+    .then(response => {
+        console.log('API响应状态:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('对比分析返回数据:', data);
+
+        if (data.success && data.data && data.data.length > 0) {
+            renderComparisonChart(data.data, selectedCities);
+            showToast('对比分析完成');
+        } else {
+            throw new Error(data.message || '获取对比数据失败');
+        }
+    })
+    .catch(error => {
+        console.error('对比分析失败:', error);
+        showToast('对比分析失败: ' + error.message, 'error');
+
+        // 显示错误信息
+        if (chartContainer) {
+            chartContainer.innerHTML = `<div style="text-align: center; padding: 50px; color: #ff6b6b;">
+                <i class="fas fa-exclamation-triangle fa-3x"></i>
+                <h4>分析失败</h4>
+                <p>错误: ${error.message}</p>
+                <button class="btn-secondary" onclick="tryLocalComparison(${JSON.stringify(selectedCities)})" style="margin-top: 20px;">
+                    尝试使用本地数据
+                </button>
+            </div>`;
+        }
+    });
+}
+
+// 使用本地数据进行对比（备选方案）
+function tryLocalComparison(selectedCities) {
+    if (!allCitiesData || allCitiesData.length === 0) {
+        console.error('本地数据为空，无法进行对比');
+        return;
+    }
+
+    // 从本地数据中筛选选中的城市
+    const comparisonData = [];
+    selectedCities.forEach(city => {
+        const cityData = allCitiesData.find(item => item.city === city);
+        if (cityData) {
+            comparisonData.push(cityData);
+        } else {
+            console.warn(`城市 ${city} 在本地数据中未找到`);
+        }
+    });
+
+    if (comparisonData.length >= 3) {
+        console.log('使用本地数据进行对比:', comparisonData);
+        renderComparisonChart(comparisonData, selectedCities);
+        showToast('使用本地数据进行对比分析', 'info');
+    } else {
+        showToast('至少需要3个城市进行对比，但在数据中只找到' + comparisonData.length + '个', 'error');
+    }
+}
+
+// 渲染对比图表
+function renderComparisonChart(data, selectedCities) {
+    console.log('渲染对比图表，数据:', data);
+    console.log('选中的城市:', selectedCities);
+
+    const chartContainer = document.getElementById('comparison-chart');
+    if (!chartContainer) {
+        console.error('图表容器未找到');
+        return;
+    }
+
+    // 确保容器有明确的高度
+    chartContainer.style.height = '450px';
+    chartContainer.style.minHeight = '450px';
+    chartContainer.innerHTML = '';
+
+    // 确保echarts已经加载
+    if (typeof echarts === 'undefined') {
+        console.error('ECharts未加载');
+        chartContainer.innerHTML = '<div style="text-align: center; padding: 50px; color: #ff6b6b;"><i class="fas fa-exclamation-triangle fa-3x"></i><h4>ECharts库未加载</h4><p>请刷新页面重试</p></div>';
+        return;
+    }
+
+    // 检查容器尺寸
+    console.log('图表容器尺寸:', {
+        width: chartContainer.offsetWidth,
+        height: chartContainer.offsetHeight,
+        clientWidth: chartContainer.clientWidth,
+        clientHeight: chartContainer.clientHeight
+    });
+
+    // 如果容器尺寸为0，延迟初始化
+    if (chartContainer.offsetHeight <= 0 || chartContainer.offsetWidth <= 0) {
+        console.warn('图表容器尺寸为0，延迟初始化');
+        setTimeout(() => {
+            renderComparisonChart(data, selectedCities);
+        }, 100);
+        return;
+    }
+
+    const chart = echarts.init(chartContainer);
+
+    // 准备数据 - 确保顺序与选中的城市一致
+    const cities = selectedCities;
+    console.log('图表城市顺序:', cities);
+
+    // 使用API返回的数据，但确保顺序
+    const avgSalaries = cities.map(city => {
+        const cityData = data.find(item => item.city === city);
+        const salary = cityData ? (cityData.avg_salary || cityData.q50 || 0) : 0;
+        console.log(`${city}: ${salary}`);
+        return salary;
+    });
+
+    const jobCounts = cities.map(city => {
+        const cityData = data.find(item => item.city === city);
+        return cityData ? (cityData.job_count || 0) : 0;
+    });
+
+    const medianSalaries = cities.map(city => {
+        const cityData = data.find(item => item.city === city);
+        return cityData ? (cityData.median_salary || cityData.q50 || 0) : 0;
+    });
+
+    console.log('平均薪资:', avgSalaries);
+    console.log('岗位数量:', jobCounts);
+    console.log('中位数薪资:', medianSalaries);
+
+    const option = {
+        title: {
+            text: '多城市薪资对比',
+            left: 'center',
+            textStyle: {
+                fontSize: 18,
+                fontWeight: 'bold'
+            }
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow'
+            },
+            formatter: function(params) {
+                let result = `${params[0].axisValue}<br/>`;
+                params.forEach(param => {
+                    if (param.seriesName === '平均薪资' || param.seriesName === '中位数薪资') {
+                        result += `${param.seriesName}: ¥${param.value.toFixed(2)}<br/>`;
+                    } else {
+                        result += `${param.seriesName}: ${param.value}<br/>`;
+                    }
+                });
+                return result;
+            }
+        },
+        legend: {
+            data: ['平均薪资', '中位数薪资', '岗位数量'],
+            top: 30
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '10%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: cities,
+            axisLabel: {
+                rotate: 45
+            }
+        },
+        yAxis: [
+            {
+                type: 'value',
+                name: '薪资（元）',
+                position: 'left',
+                axisLabel: {
+                    formatter: function(value) {
+                        if (value >= 10000) {
+                            return (value / 10000).toFixed(1) + '万';
+                        }
+                        return value;
+                    }
+                }
+            },
+            {
+                type: 'value',
+                name: '岗位数量',
+                position: 'right',
+                axisLabel: {
+                    formatter: '{value}'
+                }
+            }
+        ],
+        series: [
+            {
+                name: '平均薪资',
+                type: 'bar',
+                data: avgSalaries,
+                itemStyle: {
+                    color: '#4a7c59'
+                },
+                barWidth: '30%'
+            },
+            {
+                name: '中位数薪资',
+                type: 'bar',
+                data: medianSalaries,
+                itemStyle: {
+                    color: '#6b9b7a'
+                },
+                barWidth: '30%'
+            },
+            {
+                name: '岗位数量',
+                type: 'line',
+                yAxisIndex: 1,
+                data: jobCounts,
+                itemStyle: {
+                    color: '#ff6b6b'
+                },
+                lineStyle: {
+                    width: 3
+                },
+                symbol: 'circle',
+                symbolSize: 8
+            }
+        ]
+    };
+
+    // 在设置图表选项后，强制resize
+    try {
+        chart.setOption(option);
+        console.log('图表渲染成功');
+
+        // 添加resize监听
+        window.addEventListener('resize', function() {
+            chart.resize();
+        });
+
+        // 强制resize确保图表正确显示
+        setTimeout(() => {
+            chart.resize();
+            console.log('图表强制resize完成');
+        }, 100);
+
+        // 检查图表是否真的渲染了
+        setTimeout(() => {
+            const chartDom = chart.getDom();
+            if (chartDom && chartDom.childNodes.length === 0) {
+                console.error('图表DOM没有子元素，重新渲染');
+                chart.dispose();
+                renderComparisonChart(data, selectedCities);
+            }
+        }, 500);
+
+    } catch (error) {
+        console.error('图表渲染失败:', error);
+        chartContainer.innerHTML = `<div style="text-align: center; padding: 50px; color: #ff6b6b;">
+            <i class="fas fa-exclamation-triangle fa-3x"></i>
+            <h4>图表渲染失败</h4>
+            <p>错误: ${error.message}</p>
+            <p>数据格式: ${JSON.stringify(data)}</p>
+        </div>`;
+    }
+}
+
+// 导出所有数据
+function exportAllData() {
+    exportData('all-cities-table');
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('页面加载完成');
+
+    console.log('页面加载完成，检查对比图表容器...');
+
+    // 检查对比图表容器是否存在
+    const chartContainer = document.getElementById('comparison-chart');
+    if (chartContainer) {
+        console.log('对比图表容器找到:', chartContainer);
+        console.log('容器样式:', {
+            display: chartContainer.style.display,
+            height: chartContainer.style.height,
+            width: chartContainer.style.width,
+            computedHeight: window.getComputedStyle(chartContainer).height,
+            computedWidth: window.getComputedStyle(chartContainer).width
+        });
+    }
+
+    // 初始化ECharts图表
+    initCharts();
+
+    // 加载城市列表到对比工具
+    loadCityList();
+
+    // 更新已选城市显示
+    updateSelectedCitiesDisplay();
+
+    // 添加搜索功能
+    initSearch();
+
+    // 加载功能2、3、4的数据
+    loadQuantileData();      // 功能2：分位数分析
+    loadProvinceData();      // 功能3：省级分析
+    loadTierData();          // 功能4：梯队划分
+
+    // 图表控制功能
+    initChartControls();
+
+    // 初始化分页
+    initPagination();
+});
+
+// 初始化图表
+function initCharts() {
+    // 功能1：薪资排行榜柱状图
+    const barChart = echarts.init(document.getElementById('chart1-bar'));
+
+    if (cityData && cityData.length > 0) {
+        renderBarChart();
+    }
+
+    // 功能1：薪资与岗位数量散点图
+    const scatterChart = echarts.init(document.getElementById('chart1-scatter'));
+
+    if (allCitiesData && allCitiesData.length > 0) {
+        renderScatterChart();
+    }
+
+    // 响应式调整
+    window.addEventListener('resize', function() {
+        const barChart = echarts.getInstanceByDom(document.getElementById('chart1-bar'));
+        const scatterChart = echarts.getInstanceByDom(document.getElementById('chart1-scatter'));
+        if (barChart) barChart.resize();
+        if (scatterChart) scatterChart.resize();
+    });
+}
+
+// 渲染柱状图（固定显示前30名）
+function renderBarChart() {
+    const chart = echarts.getInstanceByDom(document.getElementById('chart1-bar'));
+    if (!chart || !cityData || cityData.length === 0) return;
+
+    // 固定显示前30个城市
+    const displayData = cityData.slice(0, 30);
+
+    const cities = displayData.map(item => item.city);
+    const salaries = displayData.map(item => item.avg_salary || 0);
+    const jobCounts = displayData.map(item => item.job_count || 0);
+
+    const barOption = {
+        title: {
+            text: `城市平均薪资TOP${displayData.length}`,
+            left: 'center',
+            textStyle: {
+                fontSize: 16,
+                fontWeight: 'bold'
+            }
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow'
+            },
+            formatter: function(params) {
+                const data = params[0];
+                const index = data.dataIndex;
+                return `${data.name}<br/>
+                        平均薪资：¥${data.value.toFixed(2)}<br/>
+                        岗位数量：${jobCounts[index]}个`;
+            }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '10%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: cities,
+            axisLabel: {
+                rotate: 45
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: '平均薪资（元/月）',
+            axisLabel: {
+                formatter: function(value) {
+                    if (value >= 10000) {
+                        return (value / 10000).toFixed(1) + '万';
+                    }
+                    return value;
+                }
+            }
+        },
+        series: [{
+            name: '平均薪资',
+            type: 'bar',
+            data: salaries,
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#6b9b7a' },
+                    { offset: 0.5, color: '#4a7c59' },
+                    { offset: 1, color: '#3d6a4a' }
+                ])
+            },
+            emphasis: {
+                itemStyle: {
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                }
+            }
+        }]
+    };
+    chart.setOption(barOption);
+}
+
+// 渲染散点图（固定显示前50个城市）- 使用所有城市数据
+// 渲染散点图（固定显示前50个城市）- 使用所有城市数据
+function renderScatterChart() {
+    const chart = echarts.getInstanceByDom(document.getElementById('chart1-scatter'));
+    if (!chart || !allCitiesData || allCitiesData.length === 0) return;
+
+    // 使用所有城市数据，按平均薪资降序排列，取前50个
+    const sortedData = [...allCitiesData].sort((a, b) => (b.avg_salary || 0) - (a.avg_salary || 0));
+    let displayData = sortedData.slice(0, 50);
+
+    // 移除极端值（可选）
+    // displayData = displayData.filter(item =>
+    //     (item.avg_salary || 0) < 13000 &&
+    //     (item.job_count || 0) < 5000
+    // );
+
+    const scatterData = displayData.map(item => [
+        item.avg_salary || 0,
+        item.job_count || 0,
+        item.city
+    ]);
+
+    // 计算统计信息（用于设置坐标轴范围）
+    const salaries = displayData.map(item => item.avg_salary || 0);
+    const jobCounts = displayData.map(item => item.job_count || 0);
+
+    // 计算分位数（排除极端值的影响）
+    const sortedSalaries = [...salaries].sort((a, b) => a - b);
+    const sortedJobCounts = [...jobCounts].sort((a, b) => a - b);
+
+    // 获取95%分位数
+    const salary95Percentile = sortedSalaries[Math.floor(sortedSalaries.length * 0.95)];
+    const jobCount95Percentile = sortedJobCounts[Math.floor(sortedJobCounts.length * 0.95)];
+
+    console.log('薪资95%分位数:', salary95Percentile);
+    console.log('岗位数量95%分位数:', jobCount95Percentile);
+
+    // 定义彩色渐变方案
+    const colors = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+        '#F1948A', '#82E0AA', '#F8C471', '#85C1E9', '#D7BDE2',
+        '#76D7C4', '#F9E79F', '#D5DBDB', '#FADBD8', '#D6EAF8'
+    ];
+
+    const scatterOption = {
+        title: {
+            text: '薪资与岗位数量关系（前50城市）',
+            left: 'center',
+            textStyle: {
+                fontSize: 16,
+                fontWeight: 'bold'
+            }
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: function(params) {
+            const city = params.data[2];
+            const salary = params.data[0];
+            const jobCount = params.data[1];
+            // 修改：使用新的薪资等级标准
+            const salaryLevel = salary >= 10000 ? '（超高薪）' :
+                              salary >= 8500 ? '（高薪）' :
+                              salary >= 7000 ? '（中高薪）' :
+                              salary >= 5500 ? '（中等）' : '（低薪）';
+
+            return `${city}${salaryLevel}<br/>
+                    薪资：¥${salary.toFixed(2)}<br/>
+                    岗位：${jobCount}个`;
+            }
+        },
+        grid: {
+            left: '12%',
+            right: '8%',
+            bottom: '12%',
+            top: '15%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'log', // 使用对数坐标轴
+            name: '平均薪资（元）',
+            nameLocation: 'middle',
+            nameGap: 25,
+            axisLabel: {
+                formatter: function(value) {
+                    if (value >= 10000) {
+                        return (value / 10000).toFixed(1) + '万';
+                    }
+                    return value;
+                }
+            },
+            splitLine: {
+                lineStyle: {
+                    type: 'dashed'
+                }
+            },
+            min: 8000, // 设置最小值
+            max: 13000, // 设置最大值，限制极端值影响
+            axisLine: {
+                lineStyle: {
+                    color: '#666'
+                }
+            }
+        },
+        yAxis: {
+            type: 'log', // 使用对数坐标轴
+            name: '岗位数量（个）',
+            nameLocation: 'middle',
+            nameGap: 30,
+            splitLine: {
+                lineStyle: {
+                    type: 'dashed'
+                }
+            },
+            min: 1, // 对数坐标需要大于0
+            max: 10000, // 设置最大值
+            axisLine: {
+                lineStyle: {
+                    color: '#666'
+                }
+            }
+        },
+        series: [{
+            name: '城市',
+            type: 'scatter',
+            symbolSize: function(data) {
+                // 根据薪资和岗位数量的综合影响调整气泡大小
+                const salaryFactor = Math.min(data[0] / 20000, 3); // 薪资影响因子
+                const jobCountFactor = Math.min(Math.sqrt(data[1]) / 20, 2); // 岗位数量影响因子
+                return 5 + (salaryFactor * 2) + (jobCountFactor * 2); // 基础大小5，最大约15
+            },
+            data: scatterData,
+            itemStyle: {
+                color: function(params) {
+                    // 根据薪资水平分配颜色
+                    const salary = params.data[0];
+
+                    if (salary >= 10000) return '#FF6B6B'; // 极高薪：红色
+                    if (salary >= 85000) return '#FFA726'; // 高薪：橙色
+                    if (salary >= 7000) return '#4ECDC4';  // 中高薪：青色
+                    if (salary >= 5500) return '#45B7D1';  // 中等：蓝色
+                    return '#96CEB4'; // 低薪：绿色
+                },
+                shadowBlur: 5,
+                shadowColor: 'rgba(0, 0, 0, 0.1)',
+                opacity: 0.8
+            },
+            emphasis: {
+                itemStyle: {
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(0, 0, 0, 0.3)',
+                    opacity: 1
+                },
+                label: {
+                    show: true,
+                    formatter: function(params) {
+                        // 只显示极端值或重要城市的标签
+                        const salary = params.data[0];
+                        const jobCount = params.data[1];
+
+                        if (salary >= 20000 || jobCount >= 1500) {
+                            return params.data[2];
+                        }
+                        return '';
+                    },
+                    position: 'top',
+                    fontSize: 12,
+                    fontWeight: 'bold'
+                }
+            }
+        }],
+        // 添加数据缩放组件，允许用户手动调整显示范围
+        dataZoom: [
+            {
+                type: 'inside',
+                xAxisIndex: 0,
+                filterMode: 'filter'
+            },
+            {
+                type: 'inside',
+                yAxisIndex: 0,
+                filterMode: 'filter'
+            },
+            {
+                show: true,
+                type: 'slider',
+                xAxisIndex: 0,
+                bottom: 0,
+                height: 20,
+                borderColor: '#ddd',
+                fillerColor: 'rgba(74, 124, 89, 0.2)',
+                handleStyle: {
+                    color: '#4a7c59'
+                }
+            }
+        ],
+        // 添加视觉映射，显示薪资等级
+        visualMap: {
+            show: true,
+            dimension: 0, // 映射薪资
+            min: Math.min(...salaries),
+            max: Math.max(...salaries),
+            calculable: true,
+            inRange: {
+                color: ['#96CEB4', '#45B7D1', '#4ECDC4', '#FFA726', '#FF6B6B']
+            },
+            text: ['高薪资', '低薪资'],
+            textStyle: {
+                color: '#666'
+            },
+            left: 'left',
+            top: 'bottom',
+            orient: 'vertical'
+        }
+    };
+
+    chart.setOption(scatterOption);
+
+    // 添加resize监听
+    window.addEventListener('resize', function() {
+        chart.resize();
+    });
+
+    // 添加点击事件，查看极端值的详细信息
+    chart.on('click', function(params) {
+        console.log('点击数据点:', params.data);
+        if (params.data[0] >= 20000 || params.data[1] >= 1500) {
+            alert(`极端值信息：
+城市：${params.data[2]}
+薪资：¥${params.data[0].toFixed(2)}
+岗位数量：${params.data[1]}个`);
+        }
+    });
+}
+// 加载城市列表到对比工具
+function loadCityList() {
+    // 直接从allCitiesData中获取城市列表
+    if (allCitiesData && allCitiesData.length > 0) {
+        const cityList = document.getElementById('cityList');
+        if (cityList) {
+            const cities = allCitiesData.map(item => item.city).sort();
+            cityList.innerHTML = cities.map(city => {
+                // 转义特殊字符，防止XSS攻击
+                const safeCity = city.replace(/['"<>]/g, '');
+                return `
+                <div class="city-item" onclick="toggleCitySelection('${safeCity}')">
+                    <input type="checkbox" class="city-checkbox" value="${safeCity}">
+                    <span>${safeCity}</span>
+                </div>
+            `}).join('');
+
+            // 初始化搜索功能
+            initCitySearch();
+        }
+    } else {
+        // 如果allCitiesData没有数据，尝试从API获取
+        fetch('/api/cities')
+            .then(response => response.json())
+            .then(cities => {
+                const cityList = document.getElementById('cityList');
+                if (cityList && cities && cities.length > 0) {
+                    cityList.innerHTML = cities.map(city => {
+                        const safeCity = city.replace(/['"<>]/g, '');
+                        return `
+                        <div class="city-item" onclick="toggleCitySelection('${safeCity}')">
+                            <input type="checkbox" class="city-checkbox" value="${safeCity}">
+                            <span>${safeCity}</span>
+                        </div>
+                    `}).join('');
+
+                    // 初始化搜索功能
+                    initCitySearch();
+                }
+            })
+            .catch(error => {
+                console.error('加载城市列表失败:', error);
+            });
+    }
+}
+
+// 切换城市选择状态
+function toggleCitySelection(city) {
+    const selectedCities = JSON.parse(localStorage.getItem('selectedCities') || '[]');
+    const index = selectedCities.indexOf(city);
+
+    if (index === -1) {
+        if (selectedCities.length >= 5) {
+            showToast('最多只能选择5个城市进行对比', 'error');
+            return;
+        }
+        selectedCities.push(city);
+    } else {
+        selectedCities.splice(index, 1);
+    }
+
+    localStorage.setItem('selectedCities', JSON.stringify(selectedCities));
+    updateSelectedCitiesDisplay();
+
+    // 更新复选框状态
+    const checkbox = document.querySelector(`.city-checkbox[value="${city}"]`);
+    if (checkbox) {
+        checkbox.checked = index === -1;
+        const cityItem = checkbox.closest('.city-item');
+        if (cityItem) {
+            cityItem.classList.toggle('selected');
+        }
+    }
+}
+
+// 初始化城市搜索
+function initCitySearch() {
+    const searchInput = document.getElementById('citySearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const cityItems = document.querySelectorAll('.city-item');
+
+            cityItems.forEach(item => {
+                const cityName = item.querySelector('span').textContent.toLowerCase();
+                if (cityName.includes(searchTerm)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
+}
+
+// 初始化搜索功能
+function initSearch() {
+    const allCitySearch = document.getElementById('allCitySearch');
+    if (allCitySearch) {
+        allCitySearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+
+            if (searchTerm.trim() === '') {
+                filteredCitiesData = [...allCitiesData];
+            } else {
+                filteredCitiesData = allCitiesData.filter(item =>
+                    item.city.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            currentPage = 1; // 重置到第一页
+            renderTablePage();
+            updatePageInfo();
+        });
+    }
+}
+
+// 初始化分页
+function initPagination() {
+    // 初始化过滤后的数据
+    filteredCitiesData = [...allCitiesData];
+
+    // 渲染第一页
+    renderTablePage();
+    updatePageInfo();
+
+    // 更新分页按钮状态
+    updatePaginationButtons();
+}
+
+// 渲染表格当前页
+function renderTablePage() {
+    const tableBody = document.getElementById('allCitiesTableBody');
+    if (!tableBody) return;
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, filteredCitiesData.length);
+    const pageData = filteredCitiesData.slice(startIndex, endIndex);
+
+    // 计算最大薪资用于进度条
+    const maxSalary = Math.max(...pageData.map(item => item.avg_salary || 0));
+
+    let html = '';
+    pageData.forEach((item, index) => {
+        const rank = startIndex + index + 1;
+        const salaryPercent = maxSalary > 0 ? ((item.avg_salary || 0) / maxSalary) * 100 : 0;
+
+        // 确定薪资梯队 - 使用新标准
+        let tierBadge = '';
+        const salary = item.avg_salary || 0;
+        if (salary >= 10000) {
+            tierBadge = '<span class="badge badge-danger">超高薪</span>';
+        } else if (salary >= 8500) {
+            tierBadge = '<span class="badge badge-warning">高薪</span>';
+        } else if (salary >= 7000) {
+            tierBadge = '<span class="badge badge-info">中高薪</span>';
+        } else if (salary >= 5500) {
+            tierBadge = '<span class="badge badge-success">中等</span>';
+        } else {
+            tierBadge = '<span class="badge badge-secondary">低薪</span>';
+        }
+
+        html += `
+        <tr>
+            <td><span class="rank-badge">${rank}</span></td>
+            <td><strong>${item.city}</strong></td>
+            <td>
+                <div class="salary-display">
+                    <span class="salary-value">¥${(item.avg_salary || 0).toFixed(2)}</span>
+                    <div class="salary-bar">
+                        <div class="salary-fill" style="width: ${salaryPercent}%"></div>
+                    </div>
+                </div>
+            </td>
+            <td>${item.job_count || 0}</td>
+            <td>${tierBadge}</td>
+            <td>
+                <button class="btn-action" onclick="addToComparison('${item.city.replace(/'/g, "\\'")}')" title="加入对比">
+                    <i class="fas fa-balance-scale"></i>
+                </button>
+            </td>
+        </tr>
+        `;
+    });
+
+    tableBody.innerHTML = html;
+
+    // 更新显示范围
+    document.getElementById('currentPageRange').textContent =
+        `${startIndex + 1}-${endIndex}`;
+
+    // 更新总城市数
+    document.getElementById('totalCitiesCount').textContent = filteredCitiesData.length;
+}
+
+// 更新分页信息
+function updatePageInfo() {
+    const totalPages = Math.ceil(filteredCitiesData.length / pageSize);
+    document.getElementById('pageInfo').textContent =
+        `第${currentPage}页，共${totalPages}页`;
+
+    updatePaginationButtons();
+}
+
+// 更新分页按钮状态
+function updatePaginationButtons() {
+    const totalPages = Math.ceil(filteredCitiesData.length / pageSize);
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+
+    if (prevBtn) {
+        prevBtn.disabled = currentPage <= 1;
+    }
+
+    if (nextBtn) {
+        nextBtn.disabled = currentPage >= totalPages;
+    }
+}
+
+// 上一页
+function prevPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        renderTablePage();
+        updatePageInfo();
+    }
+}
+
+// 下一页
+function nextPage() {
+    const totalPages = Math.ceil(filteredCitiesData.length / pageSize);
+    if (currentPage < totalPages) {
+        currentPage++;
+        renderTablePage();
+        updatePageInfo();
+    }
+}
+
+// 更改每页显示数量
+function changePageSize() {
+    const select = document.getElementById('pageSizeSelect');
+    if (select) {
+        pageSize = parseInt(select.value);
+        currentPage = 1; // 重置到第一页
+        renderTablePage();
+        updatePageInfo();
+    }
+}
+
+// 功能2：城市薪资分位数深度分析
+function loadQuantileData() {
+    fetch('/api/city_quantiles')
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.length > 0) {
+                window.quantileData = data;
+                renderQuantileChart(data);
+            } else {
+                console.log('无分位数数据');
+            }
+        })
+        .catch(error => {
+            console.error('加载分位数数据失败:', error);
+        });
+}
+
+function renderQuantileChart(data) {
+    const chart = echarts.init(document.getElementById('quantile-chart'));
+    if (!chart) return;
+
+    // 准备数据 - 只显示前15个城市
+    const displayData = data.slice(0, 15);
+    const cities = displayData.map(item => item.city);
+
+    const option = {
+        title: {
+            text: '城市薪资分位数对比（前15城市）',
+            left: 'center',
+            textStyle: {
+                fontSize: 16,
+                fontWeight: 'bold'
+            }
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow'
+            },
+            formatter: function(params) {
+                const cityData = displayData[params[0].dataIndex];
+                return `
+                    ${cityData.city}<br/>
+                    25%分位: ¥${cityData.q25 ? cityData.q25.toFixed(2) : '0.00'}<br/>
+                    中位数: ¥${cityData.q50 ? cityData.q50.toFixed(2) : '0.00'}<br/>
+                    75%分位: ¥${cityData.q75 ? cityData.q75.toFixed(2) : '0.00'}<br/>
+                    90%分位: ¥${cityData.q90 ? cityData.q90.toFixed(2) : '0.00'}<br/>
+                    岗位数量: ${cityData.job_count || 0}
+                `;
+            }
+        },
+        legend: {
+            data: ['25%分位', '中位数', '75%分位', '90%分位'],
+            top: 30
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '15%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: cities,
+            axisLabel: {
+                rotate: 45
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: '薪资（元）',
+            axisLabel: {
+                formatter: function(value) {
+                    if (value >= 10000) {
+                        return (value / 10000).toFixed(1) + '万';
+                    }
+                    return value;
+                }
+            }
+        },
+        series: [
+            {
+                name: '25%分位',
+                type: 'bar',
+                data: displayData.map(item => item.q25 || 0),
+                itemStyle: { color: '#91cc75' }
+            },
+            {
+                name: '中位数',
+                type: 'bar',
+                data: displayData.map(item => item.q50 || 0),
+                itemStyle: { color: '#fac858' }
+            },
+            {
+                name: '75%分位',
+                type: 'bar',
+                data: displayData.map(item => item.q75 || 0),
+                itemStyle: { color: '#ee6666' }
+            },
+            {
+                name: '90%分位',
+                type: 'bar',
+                data: displayData.map(item => item.q90 || 0),
+                itemStyle: { color: '#73c0de' }
+            }
+        ]
+    };
+
+    chart.setOption(option);
+    window.addEventListener('resize', () => chart.resize());
+}
+
+function updateQuantileChart() {
+    if (!window.quantileData || window.quantileData.length === 0) return;
+
+    const sortType = document.getElementById('quantileSortSelect').value;
+    let sortedData;
+
+    switch(sortType) {
+        case 'q50':
+            sortedData = [...window.quantileData].sort((a, b) => (b.q50 || 0) - (a.q50 || 0));
+            break;
+        case 'q90':
+            sortedData = [...window.quantileData].sort((a, b) => (b.q90 || 0) - (a.q90 || 0));
+            break;
+        case 'range':
+            sortedData = [...window.quantileData].sort((a, b) => {
+                const rangeA = (a.q90 || 0) - (a.q25 || 0);
+                const rangeB = (b.q90 || 0) - (b.q25 || 0);
+                return rangeB - rangeA;
+            });
+            break;
+        default:
+            sortedData = window.quantileData;
+    }
+
+    renderQuantileChart(sortedData.slice(0, 15));
+}
+
+// 功能3：省级区域薪资聚合分析
+function loadProvinceData() {
+    fetch('/api/province_analysis')
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.length > 0) {
+                window.provinceData = data;
+                updateProvinceBarChart();
+                updateProvincePieChart();
+            } else {
+                console.log('无省级分析数据');
+            }
+        })
+        .catch(error => {
+            console.error('加载省级分析数据失败:', error);
+        });
+}
+
+function updateProvinceBarChart() {
+    const chart = echarts.init(document.getElementById('province-bar-chart'));
+    if (!chart || !window.provinceData) return;
+
+    const metric = document.getElementById('provinceMetricSelect').value;
+    let sortedData;
+
+    if (metric === 'avg_salary') {
+        sortedData = [...window.provinceData].sort((a, b) => (b.avg_salary || 0) - (a.avg_salary || 0));
+    } else if (metric === 'median_salary') {
+        sortedData = [...window.provinceData].sort((a, b) => (b.median_salary || 0) - (a.median_salary || 0));
+    } else {
+        sortedData = [...window.provinceData].sort((a, b) => (b.job_count || 0) - (a.job_count || 0));
+    }
+
+    const provinces = sortedData.map(item => item.province);
+    const values = sortedData.map(item => {
+        if (metric === 'avg_salary') return item.avg_salary || 0;
+        if (metric === 'median_salary') return item.median_salary || 0;
+        return item.job_count || 0;
+    });
+
+    const option = {
+        title: {
+            text: `各省份${getMetricName(metric)}排名`,
+            left: 'center',
+            textStyle: {
+                fontSize: 16,
+                fontWeight: 'bold'
+            }
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow'
+            },
+            formatter: function(params) {
+                const province = sortedData[params[0].dataIndex];
+                return `
+                    ${province.province}<br/>
+                    平均薪资: ¥${province.avg_salary ? province.avg_salary.toFixed(2) : '0.00'}<br/>
+                    中位数: ¥${province.median_salary ? province.median_salary.toFixed(2) : '0.00'}<br/>
+                    岗位数量: ${province.job_count || 0}<br/>
+                    城市数量: ${province.city_count || 0}
+                `;
+            }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '15%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: provinces,
+            axisLabel: {
+                rotate: 45
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: getMetricName(metric),
+            axisLabel: metric === 'job_count' ? undefined : {
+                formatter: function(value) {
+                    if (value >= 10000) {
+                        return (value / 10000).toFixed(1) + '万';
+                    }
+                    return value;
+                }
+            }
+        },
+        series: [{
+            name: getMetricName(metric),
+            type: 'bar',
+            data: values,
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#6b9b7a' },
+                    { offset: 0.5, color: '#4a7c59' },
+                    { offset: 1, color: '#3d6a4a' }
+                ])
+            }
+        }]
+    };
+
+    chart.setOption(option);
+    window.addEventListener('resize', () => chart.resize());
+}
+
+function updateProvincePieChart() {
+    const chart = echarts.init(document.getElementById('province-pie-chart'));
+    if (!chart || !window.provinceData) return;
+
+    const showType = document.getElementById('provincePieSelect').value;
+    let displayData;
+
+    if (showType === 'top10') {
+        displayData = [...window.provinceData].sort((a, b) => (b.job_count || 0) - (a.job_count || 0)).slice(0, 10);
+    } else {
+        displayData = window.provinceData.slice(0, 15);
+    }
+
+    const pieData = displayData.map(item => ({
+        name: item.province,
+        value: item.job_count || 0
+    }));
+
+    const option = {
+        title: {
+            text: '各省份岗位数量占比',
+            left: 'center',
+            textStyle: {
+                fontSize: 16,
+                fontWeight: 'bold'
+            }
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: function(params) {
+                const province = displayData.find(p => p.province === params.name);
+                return `
+                    ${params.name}<br/>
+                    岗位数量: ${params.value} (${params.percent}%)<br/>
+                    平均薪资: ¥${province ? (province.avg_salary || 0).toFixed(2) : '0.00'}
+                `;
+            }
+        },
+        legend: {
+            orient: 'vertical',
+            left: 10,
+            top: 'middle',
+            type: 'scroll'
+        },
+        series: [
+            {
+                name: '岗位数量',
+                type: 'pie',
+                radius: ['40%', '70%'],
+                center: ['60%', '50%'],
+                avoidLabelOverlap: false,
+                itemStyle: {
+                    borderRadius: 10,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                },
+                label: {
+                    show: false
+                },
+                emphasis: {
+                    label: {
+                        show: true,
+                        fontSize: 14,
+                        fontWeight: 'bold'
+                    }
+                },
+                labelLine: {
+                    show: false
+                },
+                data: pieData
+            }
+        ]
+    };
+
+    chart.setOption(option);
+    window.addEventListener('resize', () => chart.resize());
+}
+
+function getMetricName(metric) {
+    switch(metric) {
+        case 'avg_salary': return '平均薪资（元）';
+        case 'median_salary': return '中位数薪资（元）';
+        case 'job_count': return '岗位数量（个）';
+        default: return '数值';
+    }
+}
+
+// 功能4：城市薪资梯队划分与统计
+function loadTierData() {
+    console.log('开始加载梯队数据...');
+
+    fetch('/api/city_tiers')
+        .then(response => {
+            console.log('API响应状态:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('梯队数据加载成功:', data);
+
+            if (data && data.length > 0) {
+                window.tierData = data;
+                renderTierChart(data);
+                loadTierCities('超高薪');
+            } else {
+                console.log('无梯队数据');
+                // 显示错误信息
+                const chartContainer = document.getElementById('salary-tier-chart');
+                if (chartContainer) {
+                    const chart = echarts.init(chartContainer);
+                    chart.setOption({
+                        title: {
+                            text: '暂无梯队数据',
+                            left: 'center',
+                            top: 'center',
+                            textStyle: {
+                                fontSize: 16,
+                                color: '#999'
+                            }
+                        }
+                    });
+                }
+            }
+        })
+        .catch(error => {
+            console.error('加载梯队数据失败:', error);
+        });
+}
+
+function renderTierChart(data) {
+    const chart = echarts.init(document.getElementById('salary-tier-chart'));
+    if (!chart) return;
+
+    const tierOrder = ['超高薪', '高薪', '中高薪', '中等', '低薪'];
+    const sortedData = tierOrder.map(tier =>
+        data.find(item => item.salary_tier === tier) || {
+            salary_tier: tier,
+            city_count: 0,
+            total_job_count: 0,
+            avg_salary: 0,
+            tier_definition: { min: 0, max: 0 }
+        }
+    );
+
+    const tiers = sortedData.map(item => item.salary_tier);
+    const cityCounts = sortedData.map(item => item.city_count || 0);
+
+    const option = {
+        title: {
+            text: '城市薪资梯队分布',
+            left: 'center',
+            textStyle: {
+                fontSize: 16,
+                fontWeight: 'bold'
+            }
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: function(params) {
+                const tier = params.name;
+                const tierData = sortedData.find(item => item.salary_tier === tier);
+                if (!tierData) return tier;
+
+                const tierDef = tierData.tier_definition || {};
+                const min = tierDef.min || 0;
+                const max = tierDef.max === Infinity ? '∞' : tierDef.max;
+
+                return `
+                    ${tier}<br/>
+                    薪资区间: ${min.toLocaleString()} - ${max === '∞' ? '∞' : max.toLocaleString()}<br/>
+                    城市数量: ${tierData.city_count || 0}<br/>
+                    岗位总数: ${tierData.total_job_count || 0}<br/>
+                    平均薪资: ¥${tierData.avg_salary ? tierData.avg_salary.toFixed(2) : '0.00'}
+                `;
+            }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '15%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: tiers
+        },
+        yAxis: {
+            type: 'value',
+            name: '城市数量'
+        },
+        series: [{
+            name: '城市数量',
+            type: 'bar',
+            data: cityCounts,
+            itemStyle: {
+                color: function(params) {
+                    const colors = ['#ff6b6b', '#ffd93d', '#6bc5d2', '#6bcf7f', '#adb5bd'];
+                    return colors[params.dataIndex] || '#4a7c59';
+                }
+            }
+        }]
+    };
+
+    chart.setOption(option);
+    window.addEventListener('resize', () => chart.resize());
+}
+
+function loadTierCities(tierName) {
+    console.log(`加载${tierName}梯队城市...`);
+
+    fetch(`/api/tier_cities/${tierName}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP错误! 状态: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(`${tierName}梯队城市数据:`, data);
+
+            if (data && data.length > 0) {
+                renderTierCitiesChart(data, tierName);
+            } else {
+                console.log(`无${tierName}梯队城市数据`);
+                showToast(`暂无${tierName}梯队城市数据`, 'info');
+
+                const chartContainer = document.getElementById('tier-detail-chart');
+                if (chartContainer) {
+                    const chart = echarts.getInstanceByDom(chartContainer);
+                    if (chart) {
+                        chart.dispose();
+                    }
+
+                    chartContainer.innerHTML = `
+                        <div style="text-align: center; padding: 50px; color: #999;">
+                            <i class="fas fa-info-circle fa-3x"></i>
+                            <h4 style="margin-top: 20px;">暂无${tierName}梯队城市数据</h4>
+                            <p>可能原因：</p>
+                            <ul style="text-align: left; display: inline-block; margin-top: 10px;">
+                                <li>没有城市达到该薪资水平</li>
+                                <li>达到该薪资水平的城市岗位数少于10个</li>
+                            </ul>
+                        </div>
+                    `;
+                }
+            }
+        })
+        .catch(error => {
+            console.error(`加载${tierName}梯队城市数据失败:`, error);
+            showToast(`加载${tierName}梯队城市数据失败: ${error.message}`, 'error');
+        });
+}
+
+function renderTierCitiesChart(data, tierName) {
+    const chartContainer = document.getElementById('tier-detail-chart');
+    if (!chartContainer) return;
+
+    // 清除现有图表
+    const existingChart = echarts.getInstanceByDom(chartContainer);
+    if (existingChart) {
+        existingChart.dispose();
+    }
+
+    chartContainer.innerHTML = '';
+    const chart = echarts.init(chartContainer);
+
+    if (!data || data.length === 0) {
+        chartContainer.innerHTML = `
+            <div style="text-align: center; padding: 50px; color: #999;">
+                <i class="fas fa-info-circle fa-3x"></i>
+                <h4 style="margin-top: 20px;">暂无${tierName}梯队城市数据</h4>
+                <p>可能原因：</p>
+                <ul style="text-align: left; display: inline-block; margin-top: 10px;">
+                    <li>没有城市达到该薪资水平</li>
+                    <li>达到该薪资水平的城市岗位数少于10个</li>
+                </ul>
+            </div>
+        `;
+        return;
+    }
+
+    // 准备散点图数据
+    const scatterData = data.map(item => ({
+        name: item.city,
+        value: [
+            item.avg_salary || item.q50 || 0,  // x轴：平均薪资
+            item.job_count || 0,               // y轴：岗位数量
+            item.city                          // 城市名称
+        ],
+        // 添加额外信息用于tooltip
+        avg_salary: item.avg_salary || item.q50 || 0,
+        job_count: item.job_count || 0,
+        q25: item.q25 || 0,
+        q75: item.q75 || 0,
+        q90: item.q90 || 0
+    }));
+
+    // 设置坐标轴范围
+    const salaries = data.map(item => item.avg_salary || item.q50 || 0);
+    const jobCounts = data.map(item => item.job_count || 0);
+
+    const minSalary = Math.min(...salaries);
+    const maxSalary = Math.max(...salaries);
+    const minJobCount = Math.min(...jobCounts);
+    const maxJobCount = Math.max(...jobCounts);
+
+    // 设置颜色映射，根据薪资水平分配颜色
+    const getColorBySalary = (salary) => {
+        if (tierName === '超高薪') return '#ff6b6b';
+        if (tierName === '高薪') return '#ffd93d';
+        if (tierName === '中高薪') return '#6bc5d2';
+        if (tierName === '中等') return '#6bcf7f';
+        return '#adb5bd'; // 低薪
+    };
+
+    const option = {
+        title: {
+            text: `${tierName}梯队 - 城市薪资与岗位分布（${data.length}个城市）`,
+            left: 'center',
+            textStyle: {
+                fontSize: 16,
+                fontWeight: 'bold'
+            }
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: function(params) {
+                const city = params.data.value[2];
+                const salary = params.data.avg_salary;
+                const jobCount = params.data.job_count;
+                const q25 = params.data.q25;
+                const q75 = params.data.q75;
+                const q90 = params.data.q90;
+
+                return `
+                    <strong>${city}</strong><br/>
+                    ──────────<br/>
+                    平均薪资：¥${salary.toFixed(2)}<br/>
+                    岗位数量：${jobCount}个<br/>
+                    <br/>
+                    分位数分析：<br/>
+                    · 25%分位：¥${q25.toFixed(2)}<br/>
+                    · 75%分位：¥${q75.toFixed(2)}<br/>
+                    · 90%分位：¥${q90.toFixed(2)}
+                `;
+            }
+        },
+        grid: {
+            left: '8%',
+            right: '12%',
+            bottom: '15%',
+            top: '15%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'value',
+            name: '平均薪资（元）',
+            nameLocation: 'middle',
+            nameGap: 25,
+            axisLabel: {
+                formatter: function(value) {
+                    if (value >= 10000) {
+                        return (value / 10000).toFixed(1) + '万';
+                    }
+                    return value;
+                }
+            },
+            splitLine: {
+                lineStyle: {
+                    type: 'dashed',
+                    color: '#e0e0e0'
+                }
+            },
+            min: minSalary * 0.95, // 留出5%的边距
+            max: maxSalary * 1.05,
+            axisLine: {
+                lineStyle: {
+                    color: '#666'
+                }
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: '岗位数量（个）',
+            nameLocation: 'middle',
+            nameGap: 40,
+            splitLine: {
+                lineStyle: {
+                    type: 'dashed',
+                    color: '#e0e0e0'
+                }
+            },
+            axisLine: {
+                lineStyle: {
+                    color: '#666'
+                }
+            },
+            scale: true
+        },
+        series: [
+            {
+                name: tierName,
+                type: 'scatter',
+                data: scatterData,
+                symbolSize: function(data) {
+                    // 气泡大小根据岗位数量和薪资综合计算
+                    const jobCount = data[1];
+                    const salary = data[0];
+
+                    // 基础大小
+                    let size = 8;
+
+                    // 岗位数量影响（对数变换避免过大差异）
+                    const jobFactor = Math.log10(jobCount + 1) * 2;
+
+                    // 薪资影响（相对该梯队）
+                    const salaryFactor = (salary / maxSalary) * 3;
+
+                    return Math.min(size + jobFactor + salaryFactor, 30); // 最大30
+                },
+                itemStyle: {
+                    color: function(params) {
+                        return getColorBySalary(params.data[0]);
+                    },
+                    opacity: 0.7,
+                    shadowBlur: 3,
+                    shadowColor: 'rgba(0, 0, 0, 0.2)',
+                    borderWidth: 1,
+                    borderColor: '#fff'
+                },
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(0, 0, 0, 0.3)',
+                        opacity: 1,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    },
+                    label: {
+                        show: true,
+                        formatter: function(params) {
+                            // 只显示重要的城市（岗位数量多或薪资高）
+                            const jobCount = params.data[1];
+                            const salary = params.data[0];
+
+                            // 设置阈值：岗位数量前10%或薪资前10%
+                            const jobThreshold = maxJobCount * 0.1;
+                            const salaryThreshold = maxSalary * 0.9;
+
+                            if (jobCount > jobThreshold || salary > salaryThreshold) {
+                                return params.data[2];
+                            }
+                            return '';
+                        },
+                        position: 'top',
+                        fontSize: 12,
+                        fontWeight: 'bold',
+                        color: '#333'
+                    }
+                }
+            }
+        ],
+        dataZoom: [
+            {
+                type: 'inside',
+                xAxisIndex: 0,
+                filterMode: 'filter'
+            },
+            {
+                type: 'inside',
+                yAxisIndex: 0,
+                filterMode: 'filter'
+            },
+            {
+                show: true,
+                type: 'slider',
+                xAxisIndex: 0,
+                bottom: 5,
+                height: 20,
+                borderColor: '#ddd',
+                fillerColor: 'rgba(74, 124, 89, 0.2)',
+                handleStyle: {
+                    color: '#4a7c59'
+                }
+            }
+        ],
+        // 添加视觉映射
+        visualMap: [
+            {
+                show: false,
+                dimension: 0, // 映射薪资
+                min: minSalary,
+                max: maxSalary,
+                inRange: {
+                    color: getColorBySalary(maxSalary) // 使用梯队主题色渐变
+                },
+                text: ['高薪资', '低薪资'],
+                left: 'left',
+                top: 'bottom'
+            },
+            {
+                show: true,
+                dimension: 1, // 映射岗位数量
+                min: minJobCount,
+                max: maxJobCount,
+                orient: 'vertical',
+                right: 10,
+                top: 'middle',
+                text: ['岗位数量'],
+                textStyle: {
+                    color: '#666'
+                },
+                calculable: true,
+                inRange: {
+                    symbolSize: [8, 30]
+                }
+            }
+        ]
+    };
+
+    chart.setOption(option);
+
+
+    // 添加点击事件，可以直接添加到对比
+    chart.on('click', function(params) {
+        const cityName = params.data.value[2];
+        if (cityName && confirm(`是否将 ${cityName} 添加到城市对比工具？`)) {
+            addToComparison(cityName);
+        }
+    });
+
+    window.addEventListener('resize', () => chart.resize());
+}
+
+
+</script>
+{% endblock %}

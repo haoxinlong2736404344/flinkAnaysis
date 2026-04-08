@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="index-page">
+    <h2>欢迎使用招聘网站职位信息分析系统</h2>
+    <p>本系统基于51job招聘数据，使用PyFlink进行大数据分析。</p>
+
+    <div class="analysis-buttons">
+        <h3>数据分析功能：</h3>
+        <a href="{{ url_for('analysis1') }}" class="btn">城市薪资分布分析</a>
+        <a href="{{ url_for('analysis2') }}" class="btn">公司类型分布分析</a>
+        <a href="{{ url_for('analysis3') }}" class="btn">学历要求分析</a>
+        <a href="{{ url_for('analysis4') }}" class="btn">工作经验与薪资关系分析</a>
+    </div>
+
+    <div class="data-info">
+        <h3>数据来源：</h3>
+        <p>数据采集自51job招聘网站，包含职位名称、公司信息、薪资、学历要求等字段。</p>
+    </div>
+</div>
+{% endblock %}

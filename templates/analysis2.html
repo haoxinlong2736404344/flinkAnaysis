@@ -1,0 +1,1144 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    /* 图表网格样式 */
+    .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 25px;
+        margin: 25px 0;
+    }
+    
+    /* 图表卡片样式 */
+    .chart-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e0e0e0;
+        transition: box-shadow 0.3s ease;
+    }
+    
+    .chart-card:hover {
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* 图表标题样式 */
+    .chart-header {
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #4a7c59;
+    }
+    
+    .chart-header h3 {
+        font-size: 16px;
+        color: #333;
+        margin: 0;
+    }
+    
+    /* 章节样式 */
+    .section {
+        margin: 40px 0;
+        padding: 25px;
+        background: #f9f9f9;
+        border-radius: 10px;
+        border-left: 4px solid #4a7c59;
+    }
+    
+    /* 页面头部样式 */
+    .page-header {
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #4a7c59;
+    }
+    
+    .page-header h2 {
+        font-size: 20px;
+        color: #333;
+        margin-bottom: 8px;
+    }
+    
+    .page-header .subtitle {
+        color: #666;
+        font-size: 13px;
+        margin: 0;
+    }
+    
+    /* 章节标题样式 */
+    .section-header {
+        margin-bottom: 20px;
+    }
+    
+    .section-header h2 {
+        font-size: 18px;
+        color: #333;
+        margin-bottom: 8px;
+    }
+    
+    .section-header .subtitle {
+        color: #666;
+        font-size: 13px;
+        margin: 0;
+    }
+    
+    /* 数据表格容器样式 */
+    .data-table-container {
+        margin-top: 40px;
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 10px;
+    }
+    
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .chart-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        .chart-card {
+            padding: 15px;
+        }
+        
+        .section {
+            padding: 15px;
+            margin: 30px 0;
+        }
+    }
+</style>
+<div class="analysis-page">
+    <div class="page-header">
+        <h2>分析二：公司类型分布分析</h2>
+        <p class="subtitle">使用PyFlink统计各类型公司的职位发布数量</p>
+    </div>
+
+    {% if data %}
+    <div class="chart-grid">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>公司类型分布（饼图）</h3>
+            </div>
+            <div class="chart-content">
+                <div id="chart2-pie" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>公司类型职位数量对比（柱状图）</h3>
+            </div>
+            <div class="chart-content">
+                <div id="chart2-bar" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 准备数据
+        const data = {{ data | tojson }};
+        const companyTypes = data.map(item => item.company_type);
+        const counts = data.map(item => parseInt(item.count));
+        const total = counts.reduce((a, b) => a + b, 0);
+
+        // 饼图数据
+        const pieData = data.map((item, index) => ({
+            value: item.count,
+            name: item.company_type
+        }));
+
+        // 饼图
+        const chart2Pie = echarts.init(document.getElementById('chart2-pie'));
+        chart2Pie.setOption({
+            title: {
+                text: '公司类型分布',
+                left: 'center',
+                textStyle: { fontSize: 16 }
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            legend: {
+                orient: 'horizontal',
+                bottom: 0,
+                left: 'center',
+                formatter: function(name) {
+                    if (name.length > 8) {
+                        return name.substring(0, 8) + '...';
+                    }
+                    return name;
+                },
+                itemWidth: 10,
+                itemHeight: 10,
+                textStyle: { fontSize: 12 }
+            },
+            series: [{
+                name: '职位数量',
+                type: 'pie',
+                radius: ['35%', '60%'],
+                avoidLabelOverlap: true,
+                itemStyle: {
+                    borderRadius: 8,
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(0, 0, 0, 0.1)'
+                },
+                label: {
+                    show: true,
+                    formatter: '{b}: {d}%',
+                    fontSize: 11,
+                    position: 'outside',
+                    alignTo: 'edge',
+                    edgeDistance: 8
+                },
+                labelLine: {
+                    length: 10,
+                    length2: 8
+                },
+                emphasis: {
+                    label: {
+                        show: true,
+                        fontSize: 13,
+                        fontWeight: 'bold'
+                    },
+                    itemStyle: {
+                        shadowBlur: 15,
+                        shadowOffsetX: 0,
+                        shadowColor: 'rgba(0, 0, 0, 0.2)'
+                    }
+                },
+                data: pieData
+            }]
+        });
+
+        // 柱状图（保持不变）
+        const chart2Bar = echarts.init(document.getElementById('chart2-bar'));
+        chart2Bar.setOption({
+            title: {
+                text: '各公司类型职位数量',
+                left: 'center',
+                textStyle: { fontSize: 16 }
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: function(params) {
+                    const param = params[0];
+                    const percent = ((param.value / total) * 100).toFixed(2);
+                    return param.name + '<br/>' +
+                           '职位数量: ' + param.value + ' 个<br/>' +
+                           '占比: ' + percent + '%';
+                },
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                borderColor: '#ddd',
+                borderWidth: 1,
+                textStyle: { color: '#333' }
+            },
+            grid: {
+                left: '10%',
+                right: '10%',
+                bottom: '20%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: companyTypes,
+                axisLabel: {
+                    rotate: 45,
+                    interval: 0,
+                    fontSize: 11
+                },
+                axisLine: { lineStyle: { color: '#ddd' } },
+                axisTick: { show: false }
+            },
+            yAxis: {
+                type: 'value',
+                name: '职位数量（个）',
+                nameTextStyle: { fontSize: 12 },
+                axisLine: { show: false },
+                axisTick: { show: false },
+                splitLine: { lineStyle: { color: '#f5f5f5' } }
+            },
+            series: [{
+                name: '职位数量',
+                type: 'bar',
+                data: counts,
+                itemStyle: {
+                    color: function(params) {
+                        const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
+                        return colors[params.dataIndex % colors.length];
+                    },
+                    borderRadius: [4, 4, 0, 0]
+                },
+                emphasis: {
+                    itemStyle: {
+                        opacity: 0.8
+                    }
+                },
+                barWidth: '60%'
+            }]
+        });
+
+        // 响应式调整
+        window.addEventListener('resize', function() {
+            chart2Pie.resize();
+            chart2Bar.resize();
+        });
+    </script>
+    {% else %}
+    <div class="no-data">
+        <p>暂无数据</p>
+    </div>
+    {% endif %}
+
+    <!-- 公司类型 - 城市分布交叉分析 -->
+    <div class="section">
+        <div class="section-header">
+            <h2>公司类型 - 城市分布交叉分析</h2>
+            <p class="subtitle">分析各城市中不同公司类型的职位分布，回答「一线城市中哪种公司类型的职位最多」「某城市的主导公司类型是什么」的问题</p>
+        </div>
+
+        {% if city_cross_data %}
+        <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>公司类型 - 城市分布热力图</h3>
+                </div>
+                <div class="chart-content">
+                    <div id="chart2-city-heatmap" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>公司类型 - 城市分布（对数柱状图）</h3>
+                </div>
+                <div class="chart-content">
+                    <div id="chart2-city-log-bar" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="no-data">
+            <p>暂无数据</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 公司类型 - 规模交叉分析 -->
+    <div class="section">
+        <div class="section-header">
+            <h2>公司类型 - 规模交叉分析</h2>
+            <p class="subtitle">结合company_size（公司规模）维度，分析「不同规模的同类型公司」的职位分布，比如「大型民营企业 vs 中小型民营企业的职位数量差异」</p>
+        </div>
+
+        {% if size_cross_data %}
+        <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>公司类型 - 规模分布（百分比堆叠）</h3>
+                </div>
+                <div class="chart-content">
+                    <div id="chart2-size-percent-stack" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>公司类型 - 规模交叉（分级气泡图）</h3>
+                </div>
+                <div class="chart-content">
+                    <div id="chart2-size-bubble" style="width: 100%; height: 500px;"></div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="no-data">
+            <p>暂无数据</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 头部公司类型的职位学历 / 经验要求分析 -->
+    <div class="section">
+        <div class="section-header">
+            <h2>头部公司类型的职位学历 / 经验要求分析</h2>
+            <p class="subtitle">针对职位数量 TOP5 的公司类型，分析其对学历、工作经验的要求分布，回答「国企更看重学历吗？」「创业公司对经验的要求更低吗？」等问题</p>
+        </div>
+
+        {% if edu_requirements_data and exp_requirements_data %}
+        <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>TOP5公司类型学历要求分布（对数柱状图）</h3>
+                </div>
+                <div class="chart-content">
+                    <div id="chart2-edu-log-bar" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>TOP5公司类型工作经验要求分布（对数柱状图）</h3>
+                </div>
+                <div class="chart-content">
+                    <div id="chart2-exp-log-bar" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="no-data">
+            <p>暂无数据</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 新增的JavaScript代码 -->
+    <script>
+        // 等待DOM加载完成后执行图表初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 公司类型 - 城市分布交叉分析
+            {% if city_cross_data %}
+            const cityCrossData = {{ city_cross_data | tojson }};
+
+            console.log('cityCrossData:', cityCrossData); // 调试日志
+
+            // 处理热力图数据（保持不变）
+            const cityHeatmapData = [];
+            const crossCities = [...new Set(cityCrossData.map(item => item.city))].slice(0, 10);
+            const crossCompanyTypes = [...new Set(cityCrossData.map(item => item.company_type))].slice(0, 10);
+
+            cityCrossData.forEach(item => {
+                if (crossCities.includes(item.city) && crossCompanyTypes.includes(item.company_type)) {
+                    cityHeatmapData.push([crossCities.indexOf(item.city), crossCompanyTypes.indexOf(item.company_type), item.count]);
+                }
+            });
+
+            // 热力图（保持不变）
+            const chart2CityHeatmap = echarts.init(document.getElementById('chart2-city-heatmap'));
+            chart2CityHeatmap.setOption({
+                title: {
+                    text: '公司类型 - 城市分布热力图',
+                    left: 'center',
+                    textStyle: { fontSize: 16 }
+                },
+                tooltip: {
+                    position: 'top',
+                    formatter: function(params) {
+                        return crossCities[params.data[0]] + ' - ' + crossCompanyTypes[params.data[1]] + '<br/>职位数量: ' + params.data[2];
+                    },
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: '#ddd',
+                    borderWidth: 1
+                },
+                grid: {
+                    height: '60%',
+                    top: '10%',
+                    left: '17%',
+                    right: '5%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: crossCities,
+                    splitArea: { show: true, areaStyle: { color: ['#fafafa', '#f0f0f0'] } },
+                    axisLabel: { 
+                        fontSize: 11,
+                        rotate: 45,
+                        interval: 0
+                    }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: crossCompanyTypes,
+                    splitArea: { show: true, areaStyle: { color: ['#fafafa', '#f0f0f0'] } },
+                    axisLabel: { 
+                        fontSize: 11,
+                        width: 100,
+                        overflow: 'break',
+                        interval: 0
+                    }
+                },
+                visualMap: {
+                    min: 0,
+                    max: 180,
+                    calculable: true,
+                    orient: 'horizontal',
+                    left: 'center',
+                    bottom: '5%',
+                    inRange: {
+                        color: ['#ffffcc', '#c2e699', '#78c679', '#31a354', '#006837']
+                    },
+                    textStyle: { fontSize: 11 }
+                },
+                series: [{
+                    name: '职位数量',
+                    type: 'heatmap',
+                    data: cityHeatmapData,
+                    label: {
+                        show: true,
+                        fontSize: 10,
+                        color: '#333',
+                        fontWeight: 'bold',
+                        textShadowBlur: 2,
+                        textShadowColor: 'rgba(255, 255, 255, 0.8)'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: 12,
+                            color: '#fff',
+                            textShadowBlur: 3,
+                            textShadowColor: 'rgba(0, 0, 0, 0.6)'
+                        },
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            });
+
+            // 改为对数柱状图
+            const chart2CityLogBar = echarts.init(document.getElementById('chart2-city-log-bar'));
+
+            // 处理数据：按城市和公司类型分组
+            const cityGroups = {};
+            cityCrossData.forEach(item => {
+                if (!cityGroups[item.city]) cityGroups[item.city] = {};
+                cityGroups[item.city][item.company_type] = item.count;
+            });
+
+            // 取前8个城市（按职位总数）
+            const cityTotals = Object.keys(cityGroups).map(city => {
+                const total = Object.values(cityGroups[city]).reduce((a, b) => a + b, 0);
+                return { city, total };
+            }).sort((a, b) => b.total - a.total).slice(0, 8);
+
+            const topCities = cityTotals.map(item => item.city);
+
+            // 取前5个公司类型（按所有城市的总数）
+            const companyTypeTotals = {};
+            cityCrossData.forEach(item => {
+                companyTypeTotals[item.company_type] = (companyTypeTotals[item.company_type] || 0) + item.count;
+            });
+            const topCompanyTypes = Object.entries(companyTypeTotals)
+                .sort((a, b) => b[1] - a[1])
+                .map(entry => entry[0])
+                .slice(0, 5);
+
+            // 构建系列数据：每个公司类型一个系列
+            const cityBarSeries = topCompanyTypes.map(type => ({
+                name: type,
+                type: 'bar',
+                data: topCities.map(city => {
+                    const count = cityGroups[city] && cityGroups[city][type] ? cityGroups[city][type] : 0;
+                    // 对数坐标不能为0，将0替换为1（因为log(1)=0）
+                    return {
+                        value: Math.max(count, 1),
+                        rawValue: count
+                    };
+                })
+            }));
+
+            chart2CityLogBar.setOption({
+                title: {
+                    text: '各城市不同公司类型职位数量（对数坐标）',
+                    left: 'center',
+                    textStyle: { fontSize: 16 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: function(params) {
+                        let result = params[0].name + '<br/>';
+                        params.forEach(param => {
+                            const rawValue = param.data.rawValue || param.value;
+                            result += param.marker + param.seriesName + ': ' + rawValue.toLocaleString() + ' 个<br/>';
+                        });
+                        return result;
+                    },
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: '#ddd',
+                    borderWidth: 1
+                },
+                legend: {
+                    data: topCompanyTypes,
+                    top: '10%',
+                    itemWidth: 10,
+                    itemHeight: 10,
+                    textStyle: { fontSize: 11 }
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '20%',
+                    top: '25%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: topCities,
+                    axisLabel: {
+                        rotate: 45,
+                        interval: 0,
+                        fontSize: 11
+                    },
+                    axisLine: { lineStyle: { color: '#ddd' } },
+                    axisTick: { show: false },
+                    name: '城市'
+                },
+                yAxis: {
+                    type: 'log',
+                    logBase: 10,
+                    name: '职位数量（对数）',
+                    nameTextStyle: { fontSize: 12 },
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    splitLine: { lineStyle: { color: '#f5f5f5' } },
+                    axisLabel: {
+                        formatter: function(value) {
+                            // 将1显示为0，因为实际上0被替换为1
+                            if (value === 1) return '0';
+                            if (value < 1000) return value;
+                            if (value >= 1000 && value < 1000000) return (value / 1000) + 'k';
+                            return (value / 1000000) + 'M';
+                        }
+                    }
+                },
+                series: cityBarSeries
+            });
+            {% endif %}
+
+            // 公司类型 - 规模交叉分析
+            {% if size_cross_data %}
+            const sizeCrossData = {{ size_cross_data | tojson }};
+            console.log('sizeCrossData:', sizeCrossData);
+
+            // 取前10个公司类型
+            const companyTypeTotalsSize = {};
+            sizeCrossData.forEach(item => {
+                companyTypeTotalsSize[item.company_type] = (companyTypeTotalsSize[item.company_type] || 0) + item.count;
+            });
+            const topCompanyTypesSize = Object.entries(companyTypeTotalsSize)
+                .sort((a, b) => b[1] - a[1])
+                .map(entry => entry[0])
+                .slice(0, 10);
+
+            // 公司规模列表
+            const companySizes = [...new Set(sizeCrossData.map(item => item.company_size))];
+
+            // 1. 百分比堆叠柱状图
+            const chart2SizePercentStack = echarts.init(document.getElementById('chart2-size-percent-stack'));
+
+            // 计算每个公司类型的规模百分比
+            const percentDataBySize = {};
+            const totalByCompanyType = {};
+
+            // 先计算每个公司类型的总数
+            topCompanyTypesSize.forEach(type => {
+                totalByCompanyType[type] = 0;
+            });
+            sizeCrossData.forEach(item => {
+                if (topCompanyTypesSize.includes(item.company_type)) {
+                    totalByCompanyType[item.company_type] = (totalByCompanyType[item.company_type] || 0) + item.count;
+                }
+            });
+
+            // 构建百分比数据
+            companySizes.forEach(size => {
+                percentDataBySize[size] = topCompanyTypesSize.map(type => {
+                    const found = sizeCrossData.find(item => item.company_type === type && item.company_size === size);
+                    const count = found ? found.count : 0;
+                    const total = totalByCompanyType[type] || 1; // 避免除0
+                    return {
+                        value: (count / total * 100).toFixed(2),
+                        rawValue: count
+                    };
+                });
+            });
+
+            // 构建系列
+            const sizePercentSeries = companySizes.map(size => ({
+                name: size,
+                type: 'bar',
+                stack: 'total',
+                data: percentDataBySize[size]
+            }));
+
+            chart2SizePercentStack.setOption({
+                title: {
+                    text: '不同公司类型的规模分布（百分比）',
+                    left: 'center',
+                    textStyle: { fontSize: 16 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: function(params) {
+                        let result = params[0].name + '<br/>';
+                        let totalPercent = 0;
+                        let totalCount = 0;
+                        params.forEach(param => {
+                            const rawValue = param.data.rawValue;
+                            const percent = param.value;
+                            totalPercent += parseFloat(percent);
+                            totalCount += rawValue;
+                            result += param.marker + param.seriesName + ': ' + percent + '% (' + rawValue.toLocaleString() + ' 个)<br/>';
+                        });
+                        result += '总计: ' + totalPercent.toFixed(2) + '% (' + totalCount.toLocaleString() + ' 个)';
+                        return result;
+                    },
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: '#ddd',
+                    borderWidth: 1
+                },
+                legend: {
+                    data: companySizes,
+                    top: '5%',
+                    itemWidth: 10,
+                    itemHeight: 10,
+                    textStyle: { fontSize: 11 }
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '25%',
+                    top: '25%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: topCompanyTypesSize,
+                    axisLabel: {
+                        rotate: 45,
+                        interval: 0,
+                        fontSize: 11
+                    },
+                    axisLine: { lineStyle: { color: '#ddd' } },
+                    axisTick: { show: false },
+                    name: '公司类型'
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '占比 (%)',
+                    nameTextStyle: { fontSize: 12 },
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    splitLine: { lineStyle: { color: '#f5f5f5' } },
+                    axisLabel: {
+                        formatter: '{value}%'
+                    },
+                    min: 0,
+                    max: 100
+                },
+                series: sizePercentSeries
+            });
+
+            // 2. 分级气泡图
+            const chart2SizeBubble = echarts.init(document.getElementById('chart2-size-bubble'));
+
+            // 定义颜色数组
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', '#FF9FF3', '#54A0FF', '#5F27CD'];
+
+            // 创建颜色映射，确保每个规模有固定颜色
+            const sizeColorMap = {};
+            companySizes.forEach((size, index) => {
+                sizeColorMap[size] = colors[index % colors.length];
+            });
+
+            // 构建气泡图数据（每个规模一个系列）
+            const bubbleDataBySize = {};
+            companySizes.forEach(size => {
+                bubbleDataBySize[size] = sizeCrossData
+                    .filter(item => topCompanyTypesSize.includes(item.company_type) && item.company_size === size)
+                    .map(item => {
+                        const companyIndex = topCompanyTypesSize.indexOf(item.company_type);
+                        const count = item.count;
+                        return {
+                            name: item.company_type,
+                            value: [companyIndex, count], // x: 公司类型索引, y: 职位数量
+                            count: count,
+                            company_type: item.company_type,
+                            company_size: size
+                        };
+                    });
+            });
+
+            // 气泡大小分级函数 - 针对0-9000范围调整
+            function getBubbleSize(count) {
+                if (count >= 8000) return 60;
+                if (count >= 6000) return 50;
+                if (count >= 4000) return 40;
+                if (count >= 2000) return 30;
+                if (count >= 1000) return 25;
+                if (count >= 500) return 20;
+                if (count >= 100) return 15;
+                if (count >= 10) return 10;
+                return 8;
+            }
+
+            const bubbleSeries = companySizes.map((size, index) => {
+                const data = bubbleDataBySize[size] || [];
+                return {
+                    name: size,
+                    type: 'scatter',
+                    symbolSize: function(data) {
+                        return getBubbleSize(data.count);
+                    },
+                    data: data,
+                    itemStyle: {
+                        // 固定颜色，使用sizeColorMap中的颜色
+                        color: sizeColorMap[size],
+                        opacity: 0.8,
+                        borderColor: '#fff',
+                        borderWidth: 1.5,
+                        shadowBlur: 5,
+                        shadowColor: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            formatter: function(params) {
+                                return params.data.name + '\n' + size + ': ' + params.data.count.toLocaleString();
+                            },
+                            position: 'top',
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            borderColor: '#ddd',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            padding: [6, 10],
+                            fontSize: 11,
+                            color: '#333'
+                        },
+                        itemStyle: {
+                            opacity: 1,
+                            borderWidth: 2,
+                            borderColor: '#fff',
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.3)'
+                        }
+                    }
+                };
+            });
+
+            // 完整的拉长气泡图配置
+            chart2SizeBubble.setOption({
+                title: {
+                    text: '不同规模的同类型公司职位分布（气泡图）',
+                    left: 'center',
+                    textStyle: { fontSize: 16 },
+                    top: '2%'  // 标题上移
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        return params.data.name + ' - ' + params.seriesName +
+                               '<br/>职位数量: ' + params.data.count.toLocaleString() + ' 个';
+                    },
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: '#ddd',
+                    borderWidth: 1
+                },
+                legend: {
+                    data: companySizes,
+                    top: '7%',  // 图例上移
+                    left: 'center',
+                    itemWidth: 10,
+                    itemHeight: 10,
+                    textStyle: { fontSize: 11 }
+                },
+                grid: {
+                    left: '12%',
+                    right: '10%',
+                    bottom: '8%',   // 大幅减少底部空白
+                    top: '22%',     // 增加顶部空白给图例
+                    height: '70%',  // 图表区域占70%高度
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: topCompanyTypesSize,
+                    axisLabel: {
+                        rotate: 45,
+                        interval: 0,
+                        fontSize: 11,
+                        margin: 15  // 增加标签与轴线的距离
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#ddd',
+                            width: 1.5
+                        }
+                    },
+                    axisTick: {
+                        show: true,
+                        length: 6,
+                        lineStyle: { color: '#ddd' }
+                    },
+                    name: '公司类型',
+                    nameTextStyle: { fontSize: 12 },
+                    nameGap: 25  // 增加名称与轴线的距离
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '职位数量（个）',
+                    nameTextStyle: { fontSize: 12 },
+                    nameLocation: 'end',
+                    nameGap: 20,  // 增加名称与轴线的距离
+                    axisLine: {
+                        show: true,
+                        lineStyle: {
+                            color: '#ddd',
+                            width: 1.5
+                        }
+                    },
+                    axisTick: {
+                        show: true,
+                        length: 6,
+                        lineStyle: { color: '#ddd' }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: '#f5f5f5',
+                            width: 1
+                        }
+                    },
+                    min: 0,
+                    max: 750,
+                    interval: 75,
+                    axisLabel: {
+                        margin: 10,  // 增加标签与轴线的间距
+                        fontSize: 11
+                    }
+                },
+                series: bubbleSeries
+            });
+            {% endif %}
+
+            // 头部公司类型的职位学历 / 经验要求分析
+            {% if edu_requirements_data and exp_requirements_data %}
+            const eduRequirementsData = {{ edu_requirements_data | tojson }};
+            const expRequirementsData = {{ exp_requirements_data | tojson }};
+
+            // 学历要求分析对数柱状图
+            const chart2EduLogBar = echarts.init(document.getElementById('chart2-edu-log-bar'));
+
+            // 获取公司类型和学历类型
+            const eduCompanyTypes = [...new Set(eduRequirementsData.map(item => item.company_type))];
+            const eduTypes = [...new Set(eduRequirementsData.map(item => item.edu))];
+
+            // 构建系列数据：每个学历一个系列
+            const eduLogBarSeries = eduTypes.map(edu => ({
+                name: edu,
+                type: 'bar',
+                data: eduCompanyTypes.map(type => {
+                    const found = eduRequirementsData.find(item => item.company_type === type && item.edu === edu);
+                    const count = found ? found.count : 0;
+                    return {
+                        value: Math.max(count, 1),
+                        rawValue: count
+                    };
+                })
+            }));
+
+            chart2EduLogBar.setOption({
+                title: {
+                    text: 'TOP5公司类型学历要求分布（对数坐标）',
+                    left: 'center',
+                    textStyle: { fontSize: 16 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: function(params) {
+                        let result = params[0].name + '<br/>';
+                        params.forEach(param => {
+                            const rawValue = param.data.rawValue;
+                            result += param.marker + param.seriesName + ': ' + rawValue.toLocaleString() + ' 个<br/>';
+                        });
+                        return result;
+                    },
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: '#ddd',
+                    borderWidth: 1
+                },
+                legend: {
+                    data: eduTypes,
+                    orient: 'horizontal',
+                    bottom: 0,
+                    left: 'center',
+                    itemWidth: 10,
+                    itemHeight: 10,
+                    textStyle: { fontSize: 11 }
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '25%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: eduCompanyTypes,
+                    axisLabel: {
+                        rotate: 45,
+                        interval: 0,
+                        fontSize: 11
+                    },
+                    axisLine: { lineStyle: { color: '#ddd' } },
+                    axisTick: { show: false },
+                    name: '公司类型'
+                },
+                yAxis: {
+                    type: 'log',
+                    logBase: 10,
+                    name: '职位数量（对数）',
+                    nameTextStyle: { fontSize: 12 },
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    splitLine: { lineStyle: { color: '#f5f5f5' } },
+                    axisLabel: {
+                        formatter: function(value) {
+                            if (value === 1) return '0';
+                            if (value < 1000) return value;
+                            if (value >= 1000 && value < 1000000) return (value / 1000) + 'k';
+                            return (value / 1000000) + 'M';
+                        }
+                    }
+                },
+                series: eduLogBarSeries
+            });
+
+            // 工作经验要求分析对数柱状图
+            const chart2ExpLogBar = echarts.init(document.getElementById('chart2-exp-log-bar'));
+
+            // 获取公司类型和经验类型
+            const expCompanyTypes = [...new Set(expRequirementsData.map(item => item.company_type))];
+            const expTypes = [...new Set(expRequirementsData.map(item => item.workingexp))];
+
+            // 构建系列数据：每个工作经验一个系列
+            const expLogBarSeries = expTypes.map(exp => ({
+                name: exp,
+                type: 'bar',
+                data: expCompanyTypes.map(type => {
+                    const found = expRequirementsData.find(item => item.company_type === type && item.workingexp === exp);
+                    const count = found ? found.count : 0;
+                    return {
+                        value: Math.max(count, 1),
+                        rawValue: count
+                    };
+                })
+            }));
+
+            chart2ExpLogBar.setOption({
+                title: {
+                    text: 'TOP5公司类型工作经验要求分布（对数坐标）',
+                    left: 'center',
+                    textStyle: { fontSize: 16 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: function(params) {
+                        let result = params[0].name + '<br/>';
+                        params.forEach(param => {
+                            const rawValue = param.data.rawValue;
+                            result += param.marker + param.seriesName + ': ' + rawValue.toLocaleString() + ' 个<br/>';
+                        });
+                        return result;
+                    },
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: '#ddd',
+                    borderWidth: 1
+                },
+                legend: {
+                    data: expTypes,
+                    orient: 'horizontal',
+                    bottom: 20,
+                    left: 'center',
+                    itemWidth: 10,
+                    itemHeight: 10,
+                    textStyle: { fontSize: 11 }
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '25%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: expCompanyTypes,
+                    axisLabel: {
+                        rotate: 45,
+                        interval: 0,
+                        fontSize: 11
+                    },
+                    axisLine: { lineStyle: { color: '#ddd' } },
+                    axisTick: { show: false },
+                    name: '公司类型'
+                },
+                yAxis: {
+                    type: 'log',
+                    logBase: 10,
+                    name: '职位数量（对数）',
+                    nameTextStyle: { fontSize: 12 },
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    splitLine: { lineStyle: { color: '#f5f5f5' } },
+                    axisLabel: {
+                        formatter: function(value) {
+                            if (value === 1) return '0';
+                            if (value < 1000) return value;
+                            if (value >= 1000 && value < 1000000) return (value / 1000) + 'k';
+                            return (value / 1000000) + 'M';
+                        }
+                    }
+                },
+                series: expLogBarSeries
+            });
+            {% endif %}
+
+            // 响应式调整所有图表
+            window.addEventListener('resize', function() {
+                {% if city_cross_data %}
+                if (chart2CityHeatmap) chart2CityHeatmap.resize();
+                if (chart2CityLogBar) chart2CityLogBar.resize();
+                {% endif %}
+                {% if size_cross_data %}
+                if (chart2SizePercentStack) chart2SizePercentStack.resize();
+                if (chart2SizeBubble) chart2SizeBubble.resize();
+                {% endif %}
+                {% if edu_requirements_data and exp_requirements_data %}
+                if (chart2EduLogBar) chart2EduLogBar.resize();
+                if (chart2ExpLogBar) chart2ExpLogBar.resize();
+                {% endif %}
+            });
+        });
+    </script>
+
+    <div class="data-table-container">
+        <h3>详细数据表</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>排名</th>
+                    <th>公司类型</th>
+                    <th>职位数量</th>
+                    <th>占比</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set total_count = data | sum(attribute='count') %}
+                {% for item in data %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ item.company_type }}</td>
+                    <td>{{ item.count }}</td>
+                    <td>{% if total_count > 0 %}{{ "%.2f"|format((item.count / total_count * 100)) }}{% else %}0.00{% endif %}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

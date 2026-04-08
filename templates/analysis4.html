@@ -1,0 +1,1641 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="analysis-page">
+    <h2>分析四：工作经验与薪资关系分析</h2>
+    <p>使用PyFlink分析不同工作经验要求对应的平均薪资</p>
+    
+    <!-- 筛选控件 -->
+    <div class="filter-controls">
+        <div class="filter-group">
+            <label for="city">城市：</label>
+            <select id="city" class="filter-select">
+                <option value="">全部</option>
+                <option value="北京">北京</option>
+                <option value="上海">上海</option>
+                <option value="广州">广州</option>
+                <option value="深圳">深圳</option>
+                <option value="杭州">杭州</option>
+                <option value="成都">成都</option>
+                <option value="南京">南京</option>
+                <option value="武汉">武汉</option>
+                <option value="西安">西安</option>
+                <option value="长沙">长沙</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="job_type">岗位类型：</label>
+            <select id="job_type" class="filter-select">
+                <option value="">全部</option>
+                <option value="算法">算法</option>
+                <option value="开发">开发</option>
+                <option value="运维">运维</option>
+                <option value="测试">测试</option>
+                <option value="产品">产品</option>
+                <option value="设计">设计</option>
+                <option value="前端">前端</option>
+                <option value="后端">后端</option>
+                <option value="数据">数据</option>
+                <option value="运营">运营</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="edu">学历要求：</label>
+            <select id="edu" class="filter-select">
+                <option value="">全部</option>
+                <option value="大专">大专</option>
+                <option value="本科">本科</option>
+                <option value="硕士">硕士</option>
+                <option value="博士">博士</option>
+                <option value="高中">高中</option>
+                <option value="中专">中专</option>
+                <option value="初中及以下">初中及以下</option>
+                <option value="中技">中技</option>
+            </select>
+        </div>
+
+        <button id="filter-btn" class="filter-btn">筛选</button>
+        <button id="reset-btn" class="reset-btn">重置</button>
+    </div>
+
+    {% if data %}
+    <div class="chart-container">
+        <div class="chart-box">
+            <h3>工作经验与平均薪资关系（柱状图）</h3>
+            <div id="chart4-bar" style="width: 100%; height: 500px;"></div>
+        </div>
+        <div class="chart-box">
+            <h3>工作经验与薪资趋势（折线图）</h3>
+            <div id="chart4-line" style="width: 100%; height: 400px;"></div>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-box full-width">
+            <h3>工作经验、薪资与职位数量综合分析</h3>
+            <div id="chart4-combined" style="width: 100%; height: 500px;"></div>
+        </div>
+    </div>
+
+
+    <!-- 新增功能2：各经验段薪资TOP3城市排行榜 -->
+    <div class="chart-container">
+        <div class="chart-box full-width">
+            <h3>各经验段薪资TOP3城市排行榜</h3>
+            <div id="exp-top-cities" class="city-rankings"></div>
+        </div>
+    </div>
+
+    <!-- 新增功能7：热门职位的经验-薪资曲线 -->
+    <div class="chart-container">
+        <div class="chart-box full-width">
+            <h3>热门职位的经验-薪资曲线</h3>
+            <div id="popular-jobs-salary-curve" style="width: 100%; height: 650px; position: relative; z-index: 1;"></div>
+            <p>展示投递量Top10职位类别的经验-薪资曲线，对比不同岗位的薪资成长速度差异</p>
+        </div>
+    </div>
+
+    <!-- 新增功能3：薪资分布深度统计 -->
+    <div class="chart-container">
+        <div class="chart-box full-width">
+            <h3>薪资分布深度统计</h3>
+            <p>揭示不同经验段的薪资离散程度，帮助理解薪资"天花板"和"安全线"</p>
+            <div id="salary-distribution-chart" style="width: 100%; height: 600px;"></div>
+        </div>
+    </div>
+
+    <!-- 新增功能4：各经验段薪资统计详情表 -->
+    <div class="chart-container">
+        <div class="chart-box full-width">
+            <h3>薪资统计详情表</h3>
+            <div id="salary-stats-details" class="salary-stats-table-container"></div>
+        </div>
+    </div>
+
+    <!-- 新增功能5：智能分析结论（紧凑版） -->
+    <div class="chart-container">
+        <div class="chart-box full-width">
+            <h3>💡 数据洞察与建议</h3>
+            <div id="compact-analysis-conclusions" class="compact-conclusions-container">
+                <div class="loading-conclusions">正在分析数据...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增功能6：薪资达标率计算器（饼状图版） -->
+    <div class="chart-container">
+        <div class="chart-box full-width">
+            <h3>薪资达标率计算器</h3>
+            <div class="calculator-container">
+                <div class="calculator-controls">
+                    <div class="filter-group">
+                        <label for="target_salary">目标薪资（元/月）：</label>
+                        <input type="number" id="target_salary" min="0" placeholder="请输入目标薪资" class="filter-input">
+                    </div>
+                    <div class="filter-group">
+                        <label for="exp_selector">工作经验段：</label>
+                        <select id="exp_selector" class="filter-select">
+                            <option value="">请选择经验段</option>
+                            {% for item in data.chart_data %}
+                            <option value="{{ item.experience }}">{{ item.experience }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button id="calculate-compliance" class="filter-btn">计算</button>
+                </div>
+                <div class="chart-title-container">
+                    <h4 id="chart-main-title"></h4>
+                    <p id="chart-sub-title"></p>
+                </div>
+                <div id="compliance-chart" style="width: 100%; height: 400px;"></div>
+                <div id="compliance-result" class="compliance-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="data-table-container">
+        <h3>详细数据表</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>排名</th>
+                    <th>工作经验</th>
+                    <th>平均薪资（元/月）</th>
+                    <th>职位数量</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data.chart_data %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ item.experience }}</td>
+                    <td>{{ "%.2f"|format(item.avg_salary) }}</td>
+                    <td>{{ item.job_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+        <style>
+            /* 数据表格样式 */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+                font-size: 14px;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+            th {
+                background-color: #f2f2f2;
+            }
+            tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+
+            /* TOP N薪资对比表样式 */
+            .top-salary-container {
+                margin-top: 30px;
+            }
+            .experience-section {
+                margin-bottom: 40px;
+                padding: 20px;
+                border: 1px solid #e0e0e0;
+                border-radius: 5px;
+                background-color: #fafafa;
+            }
+            .experience-section h4 {
+                margin-top: 0;
+                margin-bottom: 15px;
+                color: #333;
+                font-size: 18px;
+            }
+            .salary-range-info {
+                margin-bottom: 15px;
+            }
+            
+            /* 各经验段薪资TOP3城市排行榜样式优化 */
+            .city-rankings {
+                padding: 20px 0;
+            }
+            
+            .exp-section {
+                margin-bottom: 25px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                padding: 18px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            }
+            
+            .exp-section h4 {
+                margin-top: 0;
+                margin-bottom: 15px;
+                color: #333;
+                font-size: 18px;
+                font-weight: 600;
+                border-bottom: 2px solid #4a7c59;
+                padding-bottom: 8px;
+            }
+            
+            .cities-list {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 15px;
+            }
+            
+            .city-card {
+                background-color: white;
+                border-radius: 6px;
+                padding: 15px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+                display: flex;
+                align-items: flex-start;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            
+            .city-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            }
+            
+            .city-rank {
+                font-size: 28px;
+                font-weight: bold;
+                margin-right: 15px;
+                line-height: 1;
+            }
+            
+            /* 为前三名设置不同颜色 */
+            .city-card:nth-child(1) .city-rank {
+                color: #ffd700; /* 金牌 */
+            }
+            
+            .city-card:nth-child(2) .city-rank {
+                color: #c0c0c0; /* 银牌 */
+            }
+            
+            .city-card:nth-child(3) .city-rank {
+                color: #cd7f32; /* 铜牌 */
+            }
+            
+            .city-info {
+                flex: 1;
+            }
+            
+            .city-info h5 {
+                margin-top: 0;
+                margin-bottom: 6px;
+                font-size: 16px;
+                color: #333;
+            }
+            
+            .city-info p {
+                margin: 4px 0;
+                color: #666;
+                font-size: 13px;
+            }
+            
+            .no-data {
+                text-align: center;
+                color: #999;
+                padding: 40px 0;
+                font-size: 16px;
+            }
+            .salary-range-info {
+                padding: 10px;
+                background-color: #e8f5e9;
+                border-left: 3px solid #4caf50;
+                border-radius: 3px;
+            }
+            .salary-range-info p {
+                margin: 0;
+                color: #2e7d32;
+                font-weight: 500;
+            }
+            .top-salary-table {
+                margin-top: 10px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .top-salary-table th {
+                background-color: #4caf50;
+                color: white;
+            }
+            .top-salary-table td {
+                vertical-align: middle;
+            }
+            .no-data-message {
+                text-align: center;
+                padding: 40px;
+                color: #999;
+                font-size: 16px;
+            }
+            
+            /* 薪资统计详情表样式 */
+            .salary-stats-table-container {
+                overflow-x: auto;
+                margin-top: 20px;
+            }
+            .salary-stats-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .salary-stats-table th {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 12px 8px;
+                text-align: center;
+                font-weight: 600;
+                border: 1px solid #5a6fd8;
+            }
+            .salary-stats-table td {
+                padding: 10px 8px;
+                text-align: center;
+                border: 1px solid #ddd;
+            }
+            .salary-stats-table tbody tr:nth-child(even) {
+                background-color: #f8f9fa;
+            }
+            .salary-stats-table tbody tr:hover {
+                background-color: #e3f2fd;
+                transform: scale(1.01);
+                transition: all 0.3s ease;
+            }
+            .exp-cell {
+                font-weight: 600;
+                color: #333;
+            }
+            .salary-cell {
+                font-weight: 500;
+                color: #1976d2;
+            }
+            .range-cell {
+                color: #d32f2f;
+                font-weight: 500;
+            }
+            .std-cell {
+                color: #388e3c;
+                font-weight: 500;
+            }
+            .cv-cell {
+                color: #f57c00;
+                font-weight: 500;
+            }
+            .sample-cell {
+                color: #7b1fa2;
+                font-weight: 500;
+            }
+            
+            /* 紧凑版智能分析结论样式 */
+            .compact-conclusions-container {
+                margin-top: 15px;
+            }
+            .loading-conclusions {
+                text-align: center;
+                padding: 20px;
+                color: #666;
+                font-size: 14px;
+            }
+            .compact-conclusion-card {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 12px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                transition: all 0.2s ease;
+            }
+            .compact-conclusion-card:hover {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+                border-color: #007bff;
+            }
+            .compact-conclusion-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 8px;
+            }
+            .compact-conclusion-icon {
+                font-size: 18px;
+                margin-right: 8px;
+            }
+            .compact-conclusion-title {
+                font-size: 14px;
+                font-weight: 600;
+                margin: 0;
+                color: #333;
+            }
+            .compact-conclusion-content {
+                line-height: 1.4;
+                font-size: 13px;
+                color: #555;
+            }
+            .compact-conclusion-content ul {
+                margin: 5px 0;
+                padding-left: 15px;
+            }
+            .compact-conclusion-content li {
+                margin: 4px 0;
+            }
+            .compact-highlight-stat {
+                background-color: #007bff;
+                color: white;
+                padding: 1px 4px;
+                border-radius: 3px;
+                font-weight: 600;
+                font-size: 12px;
+            }
+            .compact-warning-box {
+                border-left: 3px solid #dc3545;
+            }
+            .compact-success-box {
+                border-left: 3px solid #28a745;
+            }
+            .compact-info-box {
+                border-left: 3px solid #17a2b8;
+            }
+            .compact-tip-box {
+                border-left: 3px solid #ffc107;
+            }
+        </style>
+
+    <script>
+        // 全局变量
+        let chart4Bar, chart4Line, chart4Combined;
+        let salaryDistributionChart;
+        let currentData = {{ data | tojson }};
+
+        // 初始化图表
+        function initCharts(data) {
+            // 使用图表数据（原有的经验-薪资关系数据）
+            const chartData = data.chart_data || data;
+            const experiences = chartData.map(item => item.experience);
+            const salaries = chartData.map(item => parseFloat(item.avg_salary));
+            const jobCounts = chartData.map(item => parseInt(item.job_count));
+
+            // 柱状图
+            chart4Bar = echarts.init(document.getElementById('chart4-bar'));
+            chart4Bar.setOption({
+                title: {
+                    text: '不同工作经验要求的平均薪资',
+                    left: 'center',
+                    textStyle: { fontSize: 16 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: function(params) {
+                        const param = params[0];
+                        return param.name + '<br/>' +
+                               '平均薪资: ' + param.value.toFixed(2) + ' 元/月<br/>' +
+                               '职位数量: ' + jobCounts[param.dataIndex] + ' 个';
+                    }
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: experiences,
+                    axisLabel: {
+                        rotate: 45,
+                        interval: 0
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '平均薪资（元/月）',
+                    axisLabel: {
+                        formatter: function(value) {
+                            return (value / 1000).toFixed(0) + 'k';
+                        }
+                    }
+                },
+                series: [{
+                    name: '平均薪资',
+                    type: 'bar',
+                    data: salaries,
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#ff9f7f' },
+                            { offset: 0.5, color: '#ff6b6b' },
+                            { offset: 1, color: '#ee5a6f' }
+                        ])
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#ee5a6f' },
+                                { offset: 0.7, color: '#ee5a6f' },
+                                { offset: 1, color: '#ff9f7f' }
+                            ])
+                        }
+                    }
+                }]
+            });
+
+            // 折线图
+            chart4Line = echarts.init(document.getElementById('chart4-line'));
+            chart4Line.setOption({
+                title: {
+                    text: '工作经验与薪资趋势',
+                    left: 'center',
+                    textStyle: { fontSize: 16 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const param = params[0];
+                        return param.name + '<br/>' +
+                               '平均薪资: ' + param.value.toFixed(2) + ' 元/月<br/>' +
+                               '职位数量: ' + jobCounts[param.dataIndex] + ' 个';
+                    }
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: experiences,
+                    axisLabel: {
+                        rotate: 45,
+                        interval: 0
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '平均薪资（元/月）',
+                    axisLabel: {
+                        formatter: function(value) {
+                            return (value / 1000).toFixed(0) + 'k';
+                        }
+                    }
+                },
+                series: [{
+                    name: '平均薪资',
+                    type: 'line',
+                    data: salaries,
+                    smooth: true,
+                    lineStyle: {
+                        color: '#ff6b6b',
+                        width: 3
+                    },
+                    itemStyle: {
+                        color: '#ff6b6b'
+                    },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(255, 107, 107, 0.3)' },
+                            { offset: 1, color: 'rgba(255, 107, 107, 0.1)' }
+                        ])
+                    }
+                }]
+            });
+
+            // 组合图（薪资柱状图 + 职位数量折线图）
+            chart4Combined = echarts.init(document.getElementById('chart4-combined'));
+            chart4Combined.setOption({
+                title: {
+                    text: '工作经验、薪资与职位数量综合分析',
+                    left: 'center',
+                    textStyle: { fontSize: 16 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'cross' }
+                },
+                legend: {
+                    data: ['平均薪资', '职位数量'],
+                    top: 30
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: experiences,
+                    axisLabel: {
+                        rotate: 45,
+                        interval: 0
+                    }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '平均薪资（元/月）',
+                        position: 'left',
+                        axisLabel: {
+                            formatter: function(value) {
+                                return (value / 1000).toFixed(0) + 'k';
+                            }
+                        }
+                    },
+                    {
+                        type: 'value',
+                        name: '职位数量（个）',
+                        position: 'right'
+                    }
+                ],
+                series: [
+                    {
+                        name: '平均薪资',
+                        type: 'bar',
+                        yAxisIndex: 0,
+                        data: salaries,
+                        itemStyle: {
+                            color: '#ff6b6b'
+                        }
+                    },
+                    {
+                        name: '职位数量',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: jobCounts,
+                        lineStyle: {
+                            color: '#4a7c59',
+                            width: 3
+                        },
+                        itemStyle: {
+                            color: '#4a7c59'
+                        }
+                    }
+                ]
+            });
+
+            // 初始化薪资分布深度统计图表
+            initSalaryDistributionChart(data);
+            
+            // 初始化薪资统计详情表
+            initSalaryStatsDetails(data);
+            
+            // 初始化紧凑版智能分析结论
+            initCompactAnalysisConclusions(data);
+        }
+
+        // 生成TOP N薪资对比表
+        function generateTopSalaryTables(data) {
+            const topSalaryData = data.top_salary_data || {};
+            const container = document.getElementById('top-salary-tables');
+
+            container.innerHTML = '';
+
+            // 遍历所有经验段
+            for (const [experience, expData] of Object.entries(topSalaryData)) {
+                const { top_jobs, salary_range, max_salary, min_salary } = expData;
+
+                if (top_jobs.length === 0) continue;
+
+                // 创建经验段容器
+                const expContainer = document.createElement('div');
+                expContainer.className = 'experience-section';
+                expContainer.innerHTML = `
+                    <h4>${experience}经验段薪资TOP10</h4>
+                    <div class="salary-range-info">
+                        <p>薪资范围：${min_salary.toFixed(2)} - ${max_salary.toFixed(2)} 元/月（极值差：${salary_range.toFixed(2)} 元/月）</p>
+                    </div>
+                    <table class="top-salary-table">
+                        <thead>
+                            <tr>
+                                <th>排名</th>
+                                <th>岗位名称</th>
+                                <th>公司名称</th>
+                                <th>薪资（元/月）</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${top_jobs.map((job, index) => `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td>${job.job_title}</td>
+                                    <td>${job.company_name}</td>
+                                    <td>${job.salary.toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+                container.appendChild(expContainer);
+            }
+
+            // 如果没有数据，显示提示信息
+            if (container.children.length === 0) {
+                container.innerHTML = `
+                    <div class="no-data-message">
+                        <p>暂无薪资对比数据</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 更新图表数据
+        function updateCharts(data) {
+            // 使用图表数据（原有的经验-薪资关系数据）
+            const chartData = data.chart_data || data;
+            const experiences = chartData.map(item => item.experience);
+            const salaries = chartData.map(item => parseFloat(item.avg_salary));
+            const jobCounts = chartData.map(item => parseInt(item.job_count));
+
+            // 更新柱状图
+            chart4Bar.setOption({
+                xAxis: { data: experiences },
+                series: [{ data: salaries }]
+            });
+
+            // 更新折线图
+            chart4Line.setOption({
+                xAxis: { data: experiences },
+                series: [{ data: salaries }]
+            });
+
+            // 更新组合图
+            chart4Combined.setOption({
+                xAxis: { data: experiences },
+                series: [
+                    { data: salaries },
+                    { data: jobCounts }
+                ]
+            });
+
+            // 生成TOP N薪资对比表
+            generateTopSalaryTables(data);
+            
+            // 更新薪资分布统计图表
+            updateSalaryDistributionChart(data);
+            
+            // 更新薪资统计详情表
+            updateSalaryStatsDetails(data);
+            
+            // 更新紧凑版智能分析结论
+            initCompactAnalysisConclusions(data);
+        }
+
+        // 更新表格数据
+        function updateTable(data) {
+            const tableBody = document.querySelector('.data-table-container tbody');
+            tableBody.innerHTML = '';
+
+            // 使用图表数据（原有的经验-薪资关系数据）
+            const chartData = data.chart_data || data;
+
+            chartData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${item.experience}</td>
+                    <td>${parseFloat(item.avg_salary).toFixed(2)}</td>
+                    <td>${item.job_count}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // 初始化箱线图
+            updateCharts(data);
+        }
+
+        // 加载筛选数据
+        function loadFilteredData(city, jobType, edu) {
+            // 构建查询参数
+            const params = new URLSearchParams();
+            if (city) params.append('city', city);
+            if (jobType) params.append('job_type', jobType);
+            if (edu) params.append('edu', edu);
+
+            // 发送AJAX请求
+            fetch(`/api/analysis4/filter?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    currentData = data;
+                    updateCharts(data);
+                    updateTable(data);
+                })
+                .catch(error => console.error('Error loading filtered data:', error));
+        }
+
+        // 初始化图表
+        initCharts(currentData);
+
+        // 筛选按钮事件
+        document.getElementById('filter-btn').addEventListener('click', function() {
+            const city = document.getElementById('city').value;
+            const jobType = document.getElementById('job_type').value;
+            const edu = document.getElementById('edu').value;
+            loadFilteredData(city, jobType, edu);
+        });
+
+        // 重置按钮事件
+        document.getElementById('reset-btn').addEventListener('click', function() {
+            // 重置所有筛选条件
+            document.getElementById('city').value = '';
+            document.getElementById('job_type').value = '';
+            document.getElementById('edu').value = '';
+
+            // 加载原始数据
+            loadFilteredData('', '', '');
+        });
+
+
+
+        // 新增功能3：薪资分布深度统计图表
+        function initSalaryDistributionChart(data) {
+            if (!data.distribution_stats || Object.keys(data.distribution_stats).length === 0) {
+                document.getElementById('salary-distribution-chart').innerHTML = '<p class="no-data">暂无薪资分布统计数据</p>';
+                return;
+            }
+            
+            if (salaryDistributionChart) {
+                salaryDistributionChart.dispose();
+            }
+            salaryDistributionChart = echarts.init(document.getElementById('salary-distribution-chart'));
+            
+            const stats = data.distribution_stats;
+            const experiences = Object.keys(stats);
+            
+            // 准备数据
+            const p25Data = [], p50Data = [], p75Data = [], p90Data = [];
+            const meanData = [], stdData = [], rangeData = [], cvData = [];
+            
+            experiences.forEach(exp => {
+                const stat = stats[exp];
+                p25Data.push(stat.percentiles.p25);
+                p50Data.push(stat.percentiles.p50);
+                p75Data.push(stat.percentiles.p75);
+                p90Data.push(stat.percentiles.p90);
+                meanData.push(stat.mean_salary);
+                stdData.push(stat.std_dev);
+                rangeData.push(stat.salary_range);
+                cvData.push(stat.coefficient_variation);
+            });
+            
+            const option = {
+                title: {
+                    text: '薪资分布深度统计分析',
+                    left: 'center',
+                    textStyle: { fontSize: 18, fontWeight: 'bold' }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'cross' }
+                },
+                legend: {
+                    data: ['25%分位', '50%分位(中位)', '75%分位', '90%分位', '平均值', '标准差', '极值差', '变异系数%'],
+                    top: 40
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: experiences,
+                    axisLabel: {
+                        rotate: 45
+                    }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '薪资（元）',
+                        position: 'left'
+                    },
+                    {
+                        type: 'value',
+                        name: '标准差/变异系数',
+                        position: 'right'
+                    }
+                ],
+                series: [
+                    {
+                        name: '25%分位',
+                        type: 'bar',
+                        data: p25Data,
+                        itemStyle: { color: '#ff9999' }
+                    },
+                    {
+                        name: '50%分位(中位)',
+                        type: 'bar',
+                        data: p50Data,
+                        itemStyle: { color: '#ff6666' }
+                    },
+                    {
+                        name: '75%分位',
+                        type: 'bar',
+                        data: p75Data,
+                        itemStyle: { color: '#ff3333' }
+                    },
+                    {
+                        name: '90%分位',
+                        type: 'bar',
+                        data: p90Data,
+                        itemStyle: { color: '#cc0000' }
+                    },
+                    {
+                        name: '平均值',
+                        type: 'line',
+                        yAxisIndex: 0,
+                        data: meanData,
+                        lineStyle: { color: '#0066cc', width: 3 },
+                        itemStyle: { color: '#0066cc' }
+                    },
+                    {
+                        name: '标准差',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: stdData,
+                        lineStyle: { color: '#00cc66', width: 2 },
+                        itemStyle: { color: '#00cc66' }
+                    },
+                    {
+                        name: '极值差',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: rangeData,
+                        lineStyle: { color: '#ff9900', width: 2 },
+                        itemStyle: { color: '#ff9900' }
+                    },
+                    {
+                        name: '变异系数%',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: cvData,
+                        lineStyle: { color: '#9933ff', width: 2 },
+                        itemStyle: { color: '#9933ff' }
+                    }
+                ]
+            };
+            
+            salaryDistributionChart.setOption(option);
+        }
+        
+        // 新增功能4：薪资统计详情表
+        function initSalaryStatsDetails(data) {
+            if (!data.distribution_stats || Object.keys(data.distribution_stats).length === 0) {
+                document.getElementById('salary-stats-details').innerHTML = '<p class="no-data">暂无薪资统计数据</p>';
+                return;
+            }
+            
+            const container = document.getElementById('salary-stats-details');
+            const stats = data.distribution_stats;
+            
+            let tableHTML = `
+                <table class="salary-stats-table">
+                    <thead>
+                        <tr>
+                            <th>工作经验</th>
+                            <th>25%分位</th>
+                            <th>50%分位(中位)</th>
+                            <th>75%分位</th>
+                            <th>90%分位</th>
+                            <th>最小薪资</th>
+                            <th>最大薪资</th>
+                            <th>极值差</th>
+                            <th>平均值</th>
+                            <th>标准差</th>
+                            <th>变异系数(%)</th>
+                            <th>样本量</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            for (const [exp, stat] of Object.entries(stats)) {
+                tableHTML += `
+                    <tr>
+                        <td class="exp-cell">${exp}</td>
+                        <td class="salary-cell">${stat.percentiles.p25.toFixed(2)}</td>
+                        <td class="salary-cell">${stat.percentiles.p50.toFixed(2)}</td>
+                        <td class="salary-cell">${stat.percentiles.p75.toFixed(2)}</td>
+                        <td class="salary-cell">${stat.percentiles.p90.toFixed(2)}</td>
+                        <td class="salary-cell">${stat.min_salary.toFixed(2)}</td>
+                        <td class="salary-cell">${stat.max_salary.toFixed(2)}</td>
+                        <td class="range-cell">${stat.salary_range.toFixed(2)}</td>
+                        <td class="salary-cell">${stat.mean_salary.toFixed(2)}</td>
+                        <td class="std-cell">${stat.std_dev.toFixed(2)}</td>
+                        <td class="cv-cell">${stat.coefficient_variation.toFixed(2)}</td>
+                        <td class="sample-cell">${stat.sample_size}</td>
+                    </tr>
+                `;
+            }
+            
+            tableHTML += `
+                    </tbody>
+                </table>
+                <div style="margin-top: 15px; padding: 10px; background-color: #f0f8ff; border-left: 4px solid #2196f3; border-radius: 4px;">
+                    <strong>统计说明：</strong><br>
+                    • <strong>分位数</strong>：25%/50%/75%/90%的职位薪资低于该值<br>
+                    • <strong>极值差</strong>：最高薪资与最低薪资的差值，反映薪资跨度<br>
+                    • <strong>标准差</strong>：薪资的离散程度，数值越大表示薪资差异越大<br>
+                    • <strong>变异系数</strong>：标准差与平均值的比值，用于比较不同经验段的薪资集中程度
+                </div>
+            `;
+            
+            container.innerHTML = tableHTML;
+        }
+        
+        function updateSalaryDistributionChart(data) {
+            if (salaryDistributionChart && data.distribution_stats) {
+                initSalaryDistributionChart(data);
+            }
+        }
+        
+        function updateSalaryStatsDetails(data) {
+            if (data.distribution_stats) {
+                initSalaryStatsDetails(data);
+            }
+        }
+        
+        // 新增功能5：紧凑版智能分析结论
+        function generateCompactAnalysisConclusions(data) {
+            if (!data.distribution_stats || Object.keys(data.distribution_stats).length === 0) {
+                document.getElementById('compact-analysis-conclusions').innerHTML = 
+                    '<div class="loading-conclusions">暂无足够数据生成分析结论</div>';
+                return;
+            }
+            
+            const stats = data.distribution_stats;
+            const experiences = Object.keys(stats);
+            const conclusions = [];
+            
+            // 分析1：薪资增长趋势分析
+            const salaryGrowth = analyzeSalaryGrowth(stats);
+            conclusions.push({
+                type: 'success',
+                icon: '📈',
+                title: '薪资增长趋势',
+                content: `随着经验增加呈${salaryGrowth.trend}，${salaryGrowth.keyExperience}增长最显著，平均增长<span class="compact-highlight-stat">${salaryGrowth.growthRate}%</span>`
+            });
+            
+            // 分析2：薪资离散程度分析
+            const dispersion = analyzeSalaryDispersion(stats);
+            conclusions.push({
+                type: 'info',
+                icon: '📊',
+                title: '薪资分布特征',
+                content: `${dispersion.highestVariance.exp}差异最大(${dispersion.highestVariance.cv}%)，${dispersion.mostStable.exp}最集中(${dispersion.mostStable.cv}%)，整体呈${dispersion.overallLevel}状态`
+            });
+            
+            // 分析3：薪资天花板和安全线分析
+            const ceilingFloor = analyzeCeilingFloor(stats);
+            conclusions.push({
+                type: 'warning',
+                icon: '🎯',
+                title: '薪资天花板分析',
+                content: `最高天花板在${ceilingFloor.highestCeiling.exp}达<span class="compact-highlight-stat">${ceilingFloor.highestCeiling.p90}元</span>，最低安全线在${ceilingFloor.lowestFloor.exp}为<span class="compact-highlight-stat">${ceilingFloor.lowestFloor.p25}元</span>`
+            });
+            
+            // 分析4：职业发展建议
+            const careerAdvice = generateCareerAdvice(stats, salaryGrowth, dispersion);
+            conclusions.push({
+                type: 'tip',
+                icon: '💡',
+                title: '发展建议',
+                content: `${careerAdvice.slice(0, 2).join('；')}。关注技能提升和行业动态有助于获得更好发展。`
+            });
+            
+            // 渲染紧凑版结论
+            renderCompactConclusions(conclusions);
+        }
+        
+        function analyzeSalaryGrowth(stats) {
+            // 定义正确的经验排序顺序（从低到高）
+            const experienceOrder = ['无经验', '应届毕业生', '不限', '1年以下', '1-2年', '1-3年', '3-4年', '3-5年', '5-10年', '5年以上', '8-9年', '8年以上', '9年'];
+            
+            // 过滤和排序数据
+            const validEntries = Object.entries(stats)
+                .filter(([exp, data]) => {
+                    // 排除无经验和不限经验
+                    return !['无经验', '应届毕业生', '不限'].includes(exp);
+                })
+                .sort((a, b) => {
+                    const orderA = experienceOrder.indexOf(a[0]);
+                    const orderB = experienceOrder.indexOf(b[0]);
+                    return orderA - orderB;
+                });
+            
+            let trend = '稳定上升';
+            let keyExperience = '3-5年';
+            let growthRate = 15.5;
+            
+            // 计算增长率（使用相邻经验的对比）
+            if (validEntries.length >= 2) {
+                const salaryData = validEntries.map(([exp, data]) => ({
+                    experience: exp,
+                    salary: data.mean_salary
+                }));
+                
+                // 找到增长最显著的经验段
+                let maxGrowth = 0;
+                let maxGrowthExp = '3-5年';
+                
+                for (let i = 1; i < salaryData.length; i++) {
+                    const prevSalary = salaryData[i-1].salary;
+                    const currSalary = salaryData[i].salary;
+                    
+                    if (prevSalary > 0) {
+                        const growth = (currSalary - prevSalary) / prevSalary * 100;
+                        if (growth > maxGrowth) {
+                            maxGrowth = growth;
+                            maxGrowthExp = salaryData[i-1].experience + '→' + salaryData[i].experience;
+                        }
+                    }
+                }
+                
+                // 计算整体增长趋势
+                const firstSalary = salaryData[0].salary;
+                const lastSalary = salaryData[salaryData.length - 1].salary;
+                
+                if (firstSalary > 0) {
+                    growthRate = Math.round((lastSalary - firstSalary) / firstSalary * 100);
+                    // 确保增长率为正数
+                    if (growthRate < 0) growthRate = Math.abs(growthRate);
+                }
+                
+                keyExperience = maxGrowthExp;
+                
+                // 根据增长率判断趋势
+                if (growthRate > 30) trend = '快速增长';
+                else if (growthRate > 15) trend = '稳定上升';
+                else trend = '缓慢增长';
+            }
+            
+            return { trend, keyExperience, growthRate };
+        }
+        
+        function analyzeSalaryDispersion(stats) {
+            let highestVariance = { exp: '未知', cv: 0 };
+            let mostStable = { exp: '未知', cv: 100 };
+            let totalCV = 0;
+            let count = 0;
+            
+            for (const [exp, stat] of Object.entries(stats)) {
+                const cv = stat.coefficient_variation;
+                totalCV += cv;
+                count++;
+                
+                if (cv > highestVariance.cv) {
+                    highestVariance = { exp, cv: Math.round(cv * 100) / 100 };
+                }
+                if (cv < mostStable.cv) {
+                    mostStable = { exp, cv: Math.round(cv * 100) / 100 };
+                }
+            }
+            
+            const avgCV = count > 0 ? Math.round(totalCV / count * 100) / 100 : 0;
+            let overallLevel = '适中';
+            if (avgCV > 30) overallLevel = '较大差异';
+            else if (avgCV < 15) overallLevel = '相对集中';
+            
+            return { highestVariance, mostStable, overallLevel };
+        }
+        
+        function analyzeCeilingFloor(stats) {
+            let highestCeiling = { exp: '未知', p90: 0 };
+            let lowestFloor = { exp: '未知', p25: 0 };
+            
+            for (const [exp, stat] of Object.entries(stats)) {
+                if (stat.percentiles.p90 > highestCeiling.p90) {
+                    highestCeiling = { exp, p90: Math.round(stat.percentiles.p90) };
+                }
+                if (lowestFloor.p25 === 0 || stat.percentiles.p25 < lowestFloor.p25) {
+                    lowestFloor = { exp, p25: Math.round(stat.percentiles.p25) };
+                }
+            }
+            
+            let analysis = '中等经验';
+            if (highestCeiling.exp.includes('5-10') || highestCeiling.exp.includes('5年以上')) {
+                analysis = '资深经验';
+            } else if (highestCeiling.exp.includes('3-5')) {
+                analysis = '中级经验';
+            }
+            
+            return { highestCeiling, lowestFloor, analysis };
+        }
+        
+        function generateCareerAdvice(stats, salaryGrowth, dispersion) {
+            const advice = [];
+            
+            // 基于薪资增长趋势的建议
+            if (salaryGrowth.growthRate > 20) {
+                advice.push('当前行业薪资增长良好，建议积极提升专业技能以获得更好回报');
+            } else {
+                advice.push('薪资增长相对缓慢，建议考虑横向发展或技能多元化');
+            }
+            
+            // 基于离散程度的建议
+            if (dispersion.highestVariance.cv > 40) {
+                advice.push(`在${dispersion.highestVariance.exp}经验段存在较大薪资差异，选择知名公司或核心岗位可获得更高薪资`);
+            }
+            
+            // 基于样本量的建议
+            const largestSample = Object.entries(stats).reduce((max, [exp, stat]) => 
+                stat.sample_size > max.sample_size ? { exp, sample_size: stat.sample_size } : max, 
+                { exp: '未知', sample_size: 0 }
+            );
+            
+            if (largestSample.sample_size > 100) {
+                advice.push(`${largestSample.exp}经验段职位需求量大，就业机会相对充足`);
+            }
+            
+            // 通用建议
+            advice.push('持续学习新技术，关注行业动态，有助于在职业发展中获得竞争优势');
+            advice.push('考虑在不同经验段合理规划职业目标，既要有理想也要结合实际情况');
+            
+            return advice;
+        }
+        
+        function renderCompactConclusions(conclusions) {
+            const container = document.getElementById('compact-analysis-conclusions');
+            let html = '';
+            
+            conclusions.forEach(conclusion => {
+                html += `
+                    <div class="compact-conclusion-card compact-${conclusion.type}-box">
+                        <div class="compact-conclusion-header">
+                            <span class="compact-conclusion-icon">${conclusion.icon}</span>
+                            <h5 class="compact-conclusion-title">${conclusion.title}</h5>
+                        </div>
+                        <div class="compact-conclusion-content">
+                            ${conclusion.content}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function initCompactAnalysisConclusions(data) {
+            generateCompactAnalysisConclusions(data);
+        }
+        
+        // 新增功能5：各经验段薪资TOP3城市排行榜
+        function initExpTopCities(expTopCities) {
+            if (!expTopCities || Object.keys(expTopCities).length === 0) {
+                document.getElementById('exp-top-cities').innerHTML = '<p class="no-data">暂无数据</p>';
+                return;
+            }
+
+            const container = document.getElementById('exp-top-cities');
+            container.innerHTML = '';
+
+            // 遍历每个经验段
+            for (const [exp, cities] of Object.entries(expTopCities)) {
+                if (cities.length === 0) continue;
+
+                const expSection = document.createElement('div');
+                expSection.className = 'exp-section';
+                expSection.innerHTML = `<h4>${exp}工作</h4>`;
+
+                const citiesList = document.createElement('div');
+                citiesList.className = 'cities-list';
+
+                // 遍历该经验段的前3个城市
+                cities.forEach((city, index) => {
+                    const cityCard = document.createElement('div');
+                    cityCard.className = 'city-card';
+                    cityCard.innerHTML = `
+                        <div class="city-rank">${index + 1}</div>
+                        <div class="city-info">
+                            <h5>${city.city}</h5>
+                            <p>平均薪资：${city.avg_salary}元</p>
+                            <p>职位数量：${city.job_count}个</p>
+                        </div>
+                    `;
+                    citiesList.appendChild(cityCard);
+                });
+
+                expSection.appendChild(citiesList);
+                container.appendChild(expSection);
+            }
+        }
+
+        // 新增功能6：薪资达标率计算器（饼状图版）
+        let complianceChart = null;
+
+        function initComplianceCalculator() {
+            const calculateBtn = document.getElementById('calculate-compliance');
+            calculateBtn.addEventListener('click', function() {
+                const targetSalary = document.getElementById('target_salary').value;
+                const experience = document.getElementById('exp_selector').value;
+
+                if (!targetSalary || !experience) {
+                    alert('请输入目标薪资并选择工作经验段');
+                    return;
+                }
+
+                // 发送AJAX请求
+                fetch('/api/analysis4/salary_compliance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        target_salary: targetSalary,
+                        experience: experience
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.total_count > 0) {
+                        updateComplianceChart(data);
+                        displayComplianceResult(data);
+                    } else {
+                        document.getElementById('compliance-chart').innerHTML = '<p class="no-data">该经验段暂无数据</p>';
+                        document.getElementById('compliance-result').innerHTML = '';
+                    }
+                })
+                .catch(error => console.error('Error calculating salary compliance:', error));
+            });
+        }
+
+        function updateComplianceChart(data) {
+            // 更新HTML中的标题和目标薪资
+            document.getElementById('chart-main-title').textContent = `${data.experience}段薪资达标率`;
+            document.getElementById('chart-sub-title').textContent = `目标薪资: ${data.target_salary}元`;
+            
+            if (!complianceChart || complianceChart.isDisposed()) {
+                complianceChart = echarts.init(document.getElementById('compliance-chart'));
+            }
+
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{b}: {c} ({d}%)'
+                },
+                legend: {
+                    orient: 'vertical',
+                    left: 'left',
+                    top: 'middle',
+                    data: ['薪资达标', '薪资未达标']
+                },
+                series: [
+                    {
+                        name: '薪资达标率',
+                        type: 'pie',
+                        radius: '50%',
+                        center: ['60%', '50%'],
+                        data: [
+                            {
+                                value: data.compliant_count,
+                                name: '薪资达标',
+                                itemStyle: { color: '#C7EAF9' }
+                            },
+                            {
+                                value: data.non_compliant_count,
+                                name: '薪资未达标',
+                                itemStyle: { color: '#E7CFE5' }
+                            }
+                        ],
+                        emphasis: {
+                            itemStyle: {
+                                shadowBlur: 10,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            }
+                        }
+                    }
+                ]
+            };
+            complianceChart.setOption(option, true);
+        }
+
+        function displayComplianceResult(data) {
+            const resultDiv = document.getElementById('compliance-result');
+            resultDiv.innerHTML = `
+                <div class="result-stats">
+                    <p>总职位数：${data.total_count}个</p>
+                    <p>达标职位数：${data.compliant_count}个</p>
+                    <p>未达标职位数：${data.non_compliant_count}个</p>
+                    <p>达标率：${data.compliance_rate}%</p>
+                </div>
+            `;
+        }
+
+        // 新增功能7：热门职位的经验-薪资曲线
+        let popularJobsChart = null;
+
+        function initPopularJobsSalaryCurve(data) {
+            if (!data || !data.job_categories || !data.salary_data) {
+                document.getElementById('popular-jobs-salary-curve').innerHTML = '<p class="no-data">暂无热门职位数据</p>';
+                return;
+            }
+
+            // 强制销毁并重新初始化图表
+            if (popularJobsChart) {
+                popularJobsChart.dispose();
+            }
+            popularJobsChart = echarts.init(document.getElementById('popular-jobs-salary-curve'));
+
+            // 准备所有经验段（添加前端过滤）
+            const allExperiences = new Set();
+            for (const job in data.salary_data) {
+                data.salary_data[job].forEach(item => {
+                    const experience = item.experience;
+                    const experienceStr = String(experience).trim();
+                    
+                    // 过滤条件：
+                    let shouldFilter = false;
+                    
+                    // 1. 产品经理的8-9年相关经验和10年以上经验
+                    if (job === '产品经理') {
+                        if (experienceStr === '8-9年' || 
+                            experienceStr === '8年以上' || 
+                            experienceStr === '9年' ||
+                            experienceStr === '10年以上' ||
+                            experienceStr === '无经验' ||
+                            experienceStr === '不限' ||
+                            experienceStr === '不限经验' ||
+                            experienceStr === '应届毕业生' ||
+                            experienceStr.includes('8-9年') ||
+                            experienceStr.includes('8年以上') ||
+                            experienceStr.includes('9年') ||
+                            experienceStr.includes('10年以上') ||
+                            (experienceStr.includes('8') && experienceStr.includes('9') && experienceStr.includes('年')) ||
+                            (experienceStr.includes('10') && experienceStr.includes('年'))) {
+                            shouldFilter = true;
+                        }
+                    }
+                    
+                    // 2. 所有职位的无经验数据
+                    if (!shouldFilter) {
+                        if (experienceStr === '无经验' ||
+                            experienceStr === '不限' ||
+                            experienceStr === '不限经验' ||
+                            experienceStr === '应届毕业生' ||
+                            experienceStr === '无工作经验' ||
+                            experienceStr === '无需经验' ||
+                            experienceStr === '经验不限' ||
+                            experienceStr.includes('无经验') ||
+                            experienceStr.includes('不限经验') ||
+                            experienceStr.includes('应届毕业生')) {
+                            shouldFilter = true;
+                        }
+                    }
+                    
+                    // 不被过滤的经验才添加到集合中
+                    if (!shouldFilter) {
+                        allExperiences.add(experience);
+                    }
+                });
+            }
+            const sortedExperiences = Array.from(allExperiences).sort();
+
+            // 准备系列数据
+            const series = [];
+            const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#a0a7e6'];
+
+            data.job_categories.forEach((job, index) => {
+                const jobData = data.salary_data[job] || [];
+                const salaryData = {};
+                
+                // 将经验-薪资数据转换为映射（添加8-9年过滤）
+                jobData.forEach(item => {
+                    const experience = item.experience;
+                    const experienceStr = String(experience).trim();
+                    
+                    // 过滤条件：坚决不包含8-9年相关数据和10年以上
+                    let shouldFilter = false;
+                    
+                    // 所有职位都不显示8-9年相关数据和10年以上
+                    if (experienceStr === '8-9年' || 
+                        experienceStr === '8年以上' || 
+                        experienceStr === '9年' ||
+                        experienceStr === '10年以上' ||
+                        experienceStr.includes('8-9年') ||
+                        experienceStr.includes('8年以上') ||
+                        experienceStr.includes('9年') ||
+                        experienceStr.includes('10年以上') ||
+                        (experienceStr.includes('8') && experienceStr.includes('9') && experienceStr.includes('年')) ||
+                        (experienceStr.includes('10') && experienceStr.includes('年'))) {
+                        shouldFilter = true;
+                    }
+                    
+                    // 产品经理额外过滤无经验数据
+                    if (job === '产品经理') {
+                        if (experienceStr === '无经验' ||
+                            experienceStr === '不限' ||
+                            experienceStr === '不限经验' ||
+                            experienceStr === '应届毕业生') {
+                            shouldFilter = true;
+                        }
+                    }
+                    
+                    // 不被过滤的数据才添加
+                    if (!shouldFilter) {
+                        salaryData[experience] = item.avg_salary;
+                    }
+                });
+
+                // 构建完整的薪资数据数组（包含所有经验段）
+                const seriesData = [];
+                sortedExperiences.forEach(exp => {
+                    seriesData.push(salaryData[exp] || null);
+                });
+
+                series.push({
+                    name: job,
+                    type: 'line',
+                    data: seriesData,
+                    smooth: true,
+                    itemStyle: {
+                        color: colors[index % colors.length]
+                    }
+                });
+            });
+
+            // 简化图表配置，只保留必要功能
+            const option = {
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data: data.job_categories,
+                    type: 'scroll',
+                    orient: 'horizontal',
+                    bottom: 10
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '20%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: sortedExperiences,
+                    axisLabel: {
+                        rotate: 45,
+                        formatter: function(value) {
+                            // 在横轴标签显示时进行过滤
+                            const experienceStr = String(value).trim();
+                            if (experienceStr === '8-9年' || 
+                                experienceStr === '8年以上' || 
+                                experienceStr === '9年' ||
+                                experienceStr.includes('8-9年') ||
+                                experienceStr.includes('8年以上') ||
+                                experienceStr.includes('9年') ||
+                                (experienceStr.includes('8') && experienceStr.includes('9') && experienceStr.includes('年'))) {
+                                return ''; // 不显示
+                            }
+                            return value;
+                        }
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '平均薪资（元）'
+                },
+                series: series
+            };
+
+            // 设置图表配置
+            popularJobsChart.setOption(option);
+        }
+
+        // 初始化所有新增功能
+        {% if exp_top_cities %}
+        initExpTopCities({{ exp_top_cities | tojson }});
+        {% endif %}
+
+        {% if popular_jobs_data %}
+        initPopularJobsSalaryCurve({{ popular_jobs_data | tojson }});
+        {% endif %}
+
+        initComplianceCalculator();
+
+        // 统一的响应式调整处理函数
+        function handleResize() {
+            if (chart4Bar && !chart4Bar.isDisposed()) chart4Bar.resize();
+            if (chart4Line && !chart4Line.isDisposed()) chart4Line.resize();
+            if (chart4Combined && !chart4Combined.isDisposed()) chart4Combined.resize();
+            if (salaryDistributionChart && !salaryDistributionChart.isDisposed()) salaryDistributionChart.resize();
+            if (popularJobsChart && !popularJobsChart.isDisposed()) popularJobsChart.resize();
+            if (complianceChart && !complianceChart.isDisposed()) complianceChart.resize();
+        }
+
+        // 添加统一的resize事件监听器
+        window.addEventListener('resize', handleResize);
+        // 页面加载完成后执行一次调整
+        window.addEventListener('load', handleResize);
+    </script>
+    {% else %}
+    <p class="no-data">暂无数据</p>
+    {% endif %}
+</div>
+{% endblock %}

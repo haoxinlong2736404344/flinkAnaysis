@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}用户管理 - 招聘网站投递行为分析{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>用户管理</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>用户名</th>
+                <th>角色</th>
+                <th>注册时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ '管理员' if user.role == 'admin' else '普通用户' }}</td>
+                <td>{{ user.created_at }}</td>
+                <td>
+                    {% if user.id != current_user.id %}
+                        <a href="{{ url_for('delete_user', user_id=user.id) }}"
+                           class="btn btn-danger"
+                           onclick="return confirm('确定删除该用户？')">删除</a>
+                    {% else %}
+                        <span style="color: #999;">当前用户</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

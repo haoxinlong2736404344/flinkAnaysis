@@ -1,0 +1,721 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="analysis-page">
+    <h2>分析三：学历要求分析</h2>
+    <p>使用PyFlink分析各学历要求的职位分布情况</p>
+
+    {% if data %}
+    <div class="chart-container">
+        <div class="chart-box">
+            <h3>学历要求分布（饼图）</h3>
+            <div id="chart3-pie" style="width: 100%; height: 500px;"></div>
+        </div>
+        <div class="chart-box">
+            <h3>各学历要求职位数量（柱状图）</h3>
+            <div id="chart3-bar" style="width: 100%; height: 500px;"></div>
+        </div>
+    </div>
+
+    <div class="data-table-container">
+        <h3>详细数据表</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>排名</th>
+                    <th>学历要求</th>
+                    <th>职位数量</th>
+                    <th>占比</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set total_count = 0 %}
+                {% for item in data %}
+                    {% set total_count = total_count + item.count %}
+                {% endfor %}
+                {% for item in data %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ item.edu }}</td>
+                    <td>{{ item.count }}</td>
+{#                    <td>{% if total_count > 0 %}{{ "%.2f"|format((item.count / total_count * 100)) }}{% else %}0.00{% endif %}%</td>#}
+                    <td>{{ item.percent }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 准备数据
+        const data = {{ data | tojson }};
+        const eduLevels = data.map(item => item.edu);
+        const counts = data.map(item => parseInt(item.count));
+        const total = counts.reduce((a, b) => a + b, 0);
+
+
+        // 饼图数据
+        const pieData = data.map(item => ({
+            value: item.count,
+            name: item.edu
+        }));
+
+        // 学历排序（从高到低）
+        const eduOrder = ['博士', '硕士', '本科', '大专', '高中', '中专', '中技', '初中及以下'];
+        const sortedData = [...data].sort((a, b) => {
+            const indexA = eduOrder.indexOf(a.edu);
+            const indexB = eduOrder.indexOf(b.edu);
+            if (indexA === -1 && indexB === -1) return 0;
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+        });
+        const sortedEduLevels = sortedData.map(item => item.edu);
+        const sortedCounts = sortedData.map(item => parseInt(item.count));
+
+        // 饼图
+        const chart3Pie = echarts.init(document.getElementById('chart3-pie'));
+        chart3Pie.setOption({
+            title: {
+                text: '学历要求分布',
+                left: 'center',
+                textStyle: { fontSize: 16 }
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            legend: {
+                orient: 'horizontal',   // 横向
+                bottom: 10,             // 放在底部
+                left: 'center'
+            },
+            series: [{
+                name: '职位数量',
+                type: 'pie',
+                radius: ['40%', '70%'],
+                avoidLabelOverlap: false,
+                itemStyle: {
+                    borderRadius: 10,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                },
+                label: {
+                    show: true,
+                    formatter: '{b}\n{d}%'
+                },
+                emphasis: {
+                    label: {
+                        show: true,
+                        fontSize: 16,
+                        fontWeight: 'bold'
+                    }
+                },
+                data: pieData
+            }]
+        });
+
+        // 柱状图
+        const chart3Bar = echarts.init(document.getElementById('chart3-bar'));
+        chart3Bar.setOption({
+            title: {
+                text: '各学历要求职位数量',
+                left: 'center',
+                textStyle: { fontSize: 16 }
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: function(params) {
+                    const param = params[0];
+                    const percent = ((param.value / total) * 100).toFixed(2);
+                    return param.name + '<br/>' +
+                           '职位数量: ' + param.value + ' 个<br/>' +
+                           '占比: ' + percent + '%';
+                }
+            },
+            grid: {
+                    left: '8%',
+                    right: '5%',
+                    top: '18%',
+                    bottom: '18%',
+                    containLabel: true
+                },
+            xAxis: {
+                    type: 'category',
+                    data: ['博士', '硕士', '本科', '大专', '中专', '高中', '初中及以下'],
+            axisLabel: {
+                        interval: 0,   // 👈 强制每个标签都显示
+                        rotate: 0,
+                        margin: 10,
+                        fontSize: 12
+                    },
+            axisTick: {
+                        alignWithLabel: true
+                    }
+            },
+            yAxis: {
+                type: 'value',
+                name: '职位数量（个）'
+            },
+            series: [{
+                name: '职位数量',
+                type: 'bar',
+                data: sortedCounts,
+                itemStyle: {
+                    color: function(params) {
+                        const colors = ['#4a7c59', '#6b9b7a', '#8bb89a', '#a5c9b5', '#bfd6d0', '#d9e3eb', '#f3f0f6', '#edd4e8'];
+                        return colors[params.dataIndex % colors.length];
+                    }
+                }
+            }]
+        });
+
+        // 响应式调整
+        window.addEventListener('resize', function() {
+            chart3Pie.resize();
+            chart3Bar.resize();
+        });
+    </script>
+
+        <!-- 学历 - 薪资关联分析 -->
+<h2 style="margin-top: 50px;">学历 - 薪资关联分析</h2>
+<p>分析不同学历对应的薪资水平，量化学历对薪资的提升幅度</p>
+
+{% if edu_salary_data %}
+
+<!-- 学历-薪资趋势图 -->
+<div class="chart-container">
+    <div class="chart-box">
+        <h3>学历提升与薪资变化趋势</h3>
+        <div id="chart3-edu-salary-trend" style="width: 100%; height: 500px;"></div>
+    </div>
+</div>
+
+<!-- 数据表 -->
+<div class="data-table-container">
+    <h3>学历薪资详细数据表</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>排名</th>
+                <th>学历</th>
+                <th>平均薪资</th>
+                <th>薪资中位数</th>
+                <th>最高薪资</th>
+                <th>最低薪资</th>
+                <th>职位数量</th>
+                <th>比前一学历提升</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in edu_salary_data %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ item.edu }}</td>
+                <td>{{ item.avg_salary }}</td>
+                <td>{{ item.median_salary }}</td>
+                <td>{{ item.max_salary }}</td>
+                <td>{{ item.min_salary }}</td>
+                <td>{{ item.job_count }}</td>
+                <td>
+                    {% if item.increase_rate is defined %}
+                        {{ item.increase_rate }}%
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 原有注释 -->
+    <p style="margin-top: 10px; font-size: 13px; color: #666; line-height: 1.6;">
+        注：不同学历层次岗位的平均薪资受岗位类型及样本分布影响较大，
+        个别学历层级中少量高薪岗位可能对平均薪资产生拉动作用，
+        因此在分析学历与薪资关系时，
+        需结合薪资中位数等指标进行综合判断。
+    </p>
+
+    <!-- ✅ 自动生成分析结论 -->
+    <div id="edu-analysis-result"
+         style="
+            margin-top: 20px;
+            padding: 15px 18px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #409eff;
+            font-size: 14px;
+            line-height: 1.7;
+            color: #333;
+         ">
+    </div>
+</div>
+
+<script>
+/* ① 数据定义 */
+const eduSalaryData = {{ edu_salary_data | tojson }};
+
+/* ② 按学历顺序排序 */
+const eduOrderTrend = ['初中及以下', '高中', '中技', '中专', '大专', '本科', '硕士', '博士'];
+const trendData = [...eduSalaryData].sort((a, b) => {
+    return eduOrderTrend.indexOf(a.edu) - eduOrderTrend.indexOf(b.edu);
+});
+
+const eduNames = trendData.map(item => item.edu);
+const avgSalariesTrend = trendData.map(item => item.avg_salary);
+const increaseRates = trendData.map(item =>
+    item.increase_rate !== undefined ? item.increase_rate : 0
+);
+
+/* ③ 初始化图表 */
+const chartEduSalaryTrend = echarts.init(
+    document.getElementById('chart3-edu-salary-trend')
+);
+
+chartEduSalaryTrend.setOption({
+    title: {
+        text: '学历提升与薪资变化趋势分析',
+        left: 'center'
+    },
+    tooltip: {
+        trigger: 'axis'
+    },
+    legend: {
+        top: 30,
+        data: ['平均薪资', '比前一学历提升']
+    },
+    grid: {
+        left: '10%',
+        right: '10%',
+        bottom: '15%',
+        containLabel: true
+    },
+    xAxis: {
+        type: 'category',
+        data: eduNames
+    },
+    yAxis: [
+        {
+            type: 'value',
+            name: '平均薪资（元）'
+        },
+        {
+            type: 'value',
+            name: '提升幅度（%）'
+        }
+    ],
+    series: [
+        {
+            name: '平均薪资',
+            type: 'line',
+            smooth: true,
+            data: avgSalariesTrend
+        },
+        {
+            name: '比前一学历提升',
+            type: 'line',
+            yAxisIndex: 1,
+            smooth: true,
+            data: increaseRates
+        }
+    ]
+});
+
+window.addEventListener('resize', () => {
+    chartEduSalaryTrend.resize();
+});
+
+/* ④ 自动生成分析结论（稳定、不影响图表） */
+(function generateEduConclusion() {
+    if (!eduSalaryData || eduSalaryData.length < 2) return;
+
+    // 提升幅度最大的学历阶段
+    let maxIncreaseItem = null;
+    eduSalaryData.forEach(item => {
+        if (item.increase_rate !== undefined) {
+            if (!maxIncreaseItem || item.increase_rate > maxIncreaseItem.increase_rate) {
+                maxIncreaseItem = item;
+            }
+        }
+    });
+
+    // 样本量最小的学历
+    const minSampleItem = eduSalaryData.reduce((a, b) =>
+        a.job_count < b.job_count ? a : b
+    );
+
+    let html = `<strong>分析结论：</strong><br>`;
+    html += `从整体趋势看，随着学历层次的不断提升，岗位平均薪资水平总体呈现上升趋势，说明学历对薪资具有明显的正向影响。`;
+
+    if (maxIncreaseItem) {
+        html += `其中 <b>${maxIncreaseItem.edu}</b> 阶段的薪资提升最为显著，平均增幅约为 <b>${maxIncreaseItem.increase_rate}%</b>，是学历带来薪资跃升的关键节点。`;
+    }
+
+    html += `<br><br>`;
+    html += `需要注意的是，<b>${minSampleItem.edu}</b> 学历的平均薪资相对偏高，但其职位样本量较小（仅 ${minSampleItem.job_count} 个），且可能包含部分经验丰富的高薪岗位。从薪资中位数角度分析，该学历层次的整体薪资水平与其他学历差异并不显著。`;
+
+    document.getElementById('edu-analysis-result').innerHTML = html;
+})();
+</script>
+
+{% else %}
+<p class="no-data">暂无学历薪资数据</p>
+{% endif %}
+
+
+
+    <!-- 学历 - 工作经验交叉分析 -->
+    <h2 style="margin-top: 50px;">学历 - 工作经验交叉分析</h2>
+    <p>分析不同学历对应的工作经验要求分布</p>
+
+    {% if edu_exp_data %}
+    <div class="chart-container">
+        <div class="chart-box">
+            <h3>各学历工作经验要求分布</h3>
+            <div id="chart3-edu-exp-heatmap" style="width: 100%; height: 600px;"></div>
+        </div>
+    </div>
+
+    {% else %}
+    <p class="no-data">暂无学历工作经验交叉数据</p>
+    {% endif %}
+
+    <script>
+        // 学历工作经验交叉数据
+        const eduExpData = {{ edu_exp_data | tojson }};
+
+        if (eduExpData.length > 0) {
+            // 准备热力图数据
+            const eduLevels = [...new Set(eduExpData.map(item => item.edu))].sort((a, b) => {
+                const order = ['初中及以下', '高中', '中技', '中专', '大专', '本科', '硕士', '博士'];
+                return order.indexOf(a) - order.indexOf(b);
+            });
+
+            const expLevels = [...new Set(eduExpData.map(item => item.workingexp))].sort((a, b) => {
+                const order = ['无经验', '1年以下', '1-3年', '3-5年', '5-10年', '10年以上'];
+                return order.indexOf(a) - order.indexOf(b);
+            });
+
+            // 创建二维数组
+            const heatmapData = [];
+            eduExpData.forEach(item => {
+                const eduIndex = eduLevels.indexOf(item.edu);
+                const expIndex = expLevels.indexOf(item.workingexp);
+                if (eduIndex !== -1 && expIndex !== -1) {
+                    heatmapData.push([expIndex, eduIndex, item.count]);
+                }
+            });
+
+            // 学历工作经验热力图
+            const chart3EduExpHeatmap = echarts.init(document.getElementById('chart3-edu-exp-heatmap'));
+            chart3EduExpHeatmap.setOption({
+                title: {
+                    text: '学历 - 工作经验交叉分析',
+                    left: 'center',
+                    textStyle: { fontSize: 16 }
+                },
+                tooltip: {
+                    formatter: function(params) {
+                        return '学历: ' + eduLevels[params.value[1]] + '<br/>' +
+                               '工作经验: ' + expLevels[params.value[0]] + '<br/>' +
+                               '职位数量: ' + params.value[2] + ' 个';
+                    }
+                },
+                grid: {
+    left: '20%',      // 👈 给 Y 轴学历文字留足空间
+    right: '10%',
+    bottom: '20%',    // 👈 给 X 轴经验标签 + visualMap 留空间
+    top: '15%',
+    containLabel: true
+},
+xAxis: {
+    type: 'category',
+    data: expLevels,
+    splitArea: {
+        show: true
+    },
+    axisLabel: {
+        interval: 0,   // 👈 关键：禁止自动稀疏
+        margin: 10,
+        fontSize: 12
+    },
+    axisTick: {
+        alignWithLabel: true
+    }
+},
+yAxis: {
+    type: 'category',
+    data: eduLevels,
+    splitArea: {
+        show: true
+    },
+    axisLabel: {
+        interval: 0,   // 👈 关键
+        margin: 10,
+        fontSize: 12,
+        width: 80,          // 👈 防止“初中及以下”挤压
+        overflow: 'break'  // 自动换行（论文很加分）
+    }
+},
+                visualMap: {
+                    min: 0,
+                    max: Math.max(...eduExpData.map(item => item.count)),
+                    calculable: true,
+                    orient: 'horizontal',
+                    left: 'center',
+                    bottom: '5%',
+                    inRange: {
+                        color: ['#e0f7fa', '#80deea', '#26c6da', '#00acc1', '#00838f', '#006064']
+                    }
+                },
+                series: [{
+                    name: '职位数量',
+                    type: 'heatmap',
+                    data: heatmapData,
+                    label: {
+                        show: true,
+                        formatter: function(params) {
+                            return params.value[2];
+                        }
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            });
+
+            // 响应式调整
+            window.addEventListener('resize', function() {
+                chart3EduExpHeatmap.resize();
+            });
+        }
+    </script>
+
+    {% else %}
+    <p class="no-data">暂无数据</p>
+    {% endif %}
+
+
+
+
+    <!-- 学历 - 城市交叉分析 -->
+    <h2 style="margin-top: 50px;">学历 - 城市交叉分析</h2>
+    <p>分析各城市的学历要求分布，了解城市对学历的要求差异</p>
+
+    {% if edu_city_data %}
+    <div class="chart-container">
+        <div class="chart-box">
+            <h3>各城市高学历（硕士/博士）职位分布</h3>
+            <div id="chart3-city-high-edu" style="width: 100%; height: 500px;"></div>
+        </div>
+    </div>
+
+        <div class="data-table-container">
+    <h3>学历城市交叉详细数据表</h3>
+
+    <!-- 筛选区域 -->
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px;">
+        <select id="cityFilter" onchange="applyFilters()"
+                style="padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px;">
+            <option value="">全部城市</option>
+        </select>
+
+        <select id="eduFilter" onchange="applyFilters()"
+                style="padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px;">
+            <option value="">全部学历</option>
+        </select>
+    </div>
+
+    <table id="eduCityTable">
+        <thead>
+            <tr>
+                <th>城市</th>
+                <th>学历</th>
+                <th>职位数量</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in edu_city_data %}
+            <tr>
+                <td>{{ item.city }}</td>
+                <td>{{ item.edu }}</td>
+                <td>{{ item.count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 分页控件 -->
+    <div id="eduCityPagination"
+         style="margin-top: 15px; text-align: center;">
+        <button onclick="prevPage()">上一页</button>
+        <span id="pageInfo" style="margin: 0 10px;"></span>
+        <button onclick="nextPage()">下一页</button>
+    </div>
+</div>
+
+<script>
+    const table = document.getElementById("eduCityTable");
+    const tbody = table.querySelector("tbody");
+    const allRows = Array.from(tbody.querySelectorAll("tr"));
+
+    const cityFilter = document.getElementById("cityFilter");
+    const eduFilter = document.getElementById("eduFilter");
+
+    const pageSize = 10;
+    let currentPage = 1;
+    let filteredRows = [...allRows];
+
+    // 初始化下拉选项
+    function initFilters() {
+        const cities = new Set();
+        const edus = new Set();
+
+        allRows.forEach(row => {
+            cities.add(row.cells[0].innerText);
+            edus.add(row.cells[1].innerText);
+        });
+
+        [...cities].sort().forEach(city => {
+            cityFilter.innerHTML += `<option value="${city}">${city}</option>`;
+        });
+
+        [...edus].forEach(edu => {
+            eduFilter.innerHTML += `<option value="${edu}">${edu}</option>`;
+        });
+    }
+
+    // 应用筛选
+    function applyFilters() {
+        const cityVal = cityFilter.value;
+        const eduVal = eduFilter.value;
+
+        filteredRows = allRows.filter(row => {
+            const city = row.cells[0].innerText;
+            const edu = row.cells[1].innerText;
+            return (cityVal === "" || city === cityVal) &&
+                   (eduVal === "" || edu === eduVal);
+        });
+
+        currentPage = 1;
+        renderTable();
+    }
+
+    // 渲染表格（分页）
+    function renderTable() {
+        allRows.forEach(row => row.style.display = "none");
+
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+        const pageRows = filteredRows.slice(start, end);
+
+        pageRows.forEach(row => row.style.display = "");
+
+        renderPageInfo();
+    }
+
+    // 页码信息
+    function renderPageInfo() {
+        const pageInfo = document.getElementById("pageInfo");
+        const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+        pageInfo.innerText = `第 ${currentPage} / ${totalPages} 页`;
+    }
+
+    function prevPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            renderTable();
+        }
+    }
+
+    function nextPage() {
+        const totalPages = Math.ceil(filteredRows.length / pageSize);
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderTable();
+        }
+    }
+
+    // 初始化
+    initFilters();
+    renderTable();
+</script>
+
+
+    <script>
+        // 学历城市交叉数据
+        const eduCityData = {{ edu_city_data | tojson }};
+
+        // 统计各城市硕士/博士职位数量
+        const highEduCityData = {};
+        eduCityData.forEach(item => {
+            if (item.edu === '硕士' || item.edu === '博士') {
+                if (!highEduCityData[item.city]) {
+                    highEduCityData[item.city] = 0;
+                }
+                highEduCityData[item.city] += item.count;
+            }
+        });
+
+        // 转换为ECharts可用格式并排序
+        const cityHighEduArray = Object.entries(highEduCityData).map(([city, count]) => ({city, count}));
+        cityHighEduArray.sort((a, b) => b.count - a.count).slice(0, 20); // 只显示前20个城市
+
+        const cityNames = cityHighEduArray.map(item => item.city);
+        const highEduCounts = cityHighEduArray.map(item => item.count);
+
+        // 各城市高学历职位分布柱状图
+        const chart3CityHighEdu = echarts.init(document.getElementById('chart3-city-high-edu'));
+        chart3CityHighEdu.setOption({
+            title: {
+                text: '各城市高学历（硕士/博士）职位分布',
+                left: 'center',
+                textStyle: { fontSize: 16 }
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: '{b}: {c} 个'
+            },
+            grid: {
+                left: '10%',
+                right: '10%',
+                bottom: '25%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: cityNames,
+                axisLabel: {
+                    rotate: 45
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: '高学历职位数量（个）'
+            },
+            series: [{
+                name: '高学历职位数量',
+                type: 'bar',
+                data: highEduCounts,
+                itemStyle: {
+                    color: '#8e44ad'
+                }
+            }]
+        });
+
+        // 响应式调整
+        window.addEventListener('resize', function() {
+            chart3CityHighEdu.resize();
+        });
+    </script>
+    {% else %}
+    <p class="no-data">暂无学历城市交叉数据</p>
+    {% endif %}
+
+
+</div>
+{% endblock %}
