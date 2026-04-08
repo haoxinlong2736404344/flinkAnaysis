@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="analysis-page">
+    <h2>数据质量总览</h2>
+    <p>展示最新批次的治理前后质量指标与问题类型分布</p>
+
+    <div class="data-info" style="margin-bottom: 16px;">
+        <p><strong>当前批次：</strong><span id="batchId">{{ overview.batch_id if overview else '' }}</span></p>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-box">
+            <h3>治理前后指标对比（%）</h3>
+            <div id="quality-overview-chart" style="width: 100%; height: 380px;"></div>
+        </div>
+        <div class="chart-box">
+            <h3>问题率分布（%）</h3>
+            <div id="issue-summary-chart" style="width: 100%; height: 380px;"></div>
+        </div>
+    </div>
+
+    <div class="data-table-container">
+        <h3>指标明细</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>指标</th>
+                    <th>治理前</th>
+                    <th>治理后</th>
+                    <th>变化</th>
+                    <th>结果</th>
+                </tr>
+            </thead>
+            <tbody id="quality-detail-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const overviewData = {{ overview|tojson|safe }};
+
+    const metricLabels = {
+        missing_rate: '缺失率',
+        duplicate_rate: '重复率',
+        salary_parse_success_rate: '薪资解析成功率',
+        edu_valid_rate: '学历合法率',
+        outlier_rate: '异常值率'
+    };
+
+    const issueLabels = {
+        missing_required_field: '必填字段缺失',
+        duplicate_record: '重复记录',
+        salary_parse_failed: '薪资解析失败',
+        invalid_edu_value: '学历值非法',
+        salary_outlier: '薪资异常值'
+    };
+
+    const lowerBetter = new Set(['missing_rate', 'duplicate_rate', 'outlier_rate']);
+
+    function metricDisplayName(key) {
+        return metricLabels[key] || key;
+    }
+
+    function issueDisplayName(key) {
+        return issueLabels[key] || key;
+    }
+
+    function renderDetailTable() {
+        const tbody = document.getElementById('quality-detail-body');
+        tbody.innerHTML = '';
+        if (!overviewData || !overviewData.improvement) return;
+
+        Object.entries(overviewData.improvement).forEach(([key, item]) => {
+            const trend = item.trend === 'improved' ? '改善' : (item.trend === 'regressed' ? '变差' : '持平');
+            const delta = item.delta >= 0 ? `+${item.delta.toFixed(2)}` : item.delta.toFixed(2);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${metricDisplayName(key)}</td>
+                <td>${item.before.toFixed(2)}%</td>
+                <td>${item.after.toFixed(2)}%</td>
+                <td>${delta}%</td>
+                <td>${trend}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderOverviewChart() {
+        const chartDom = document.getElementById('quality-overview-chart');
+        const chart = echarts.init(chartDom);
+        const improvement = (overviewData && overviewData.improvement) ? overviewData.improvement : {};
+
+        const keys = Object.keys(improvement);
+        const names = keys.map(metricDisplayName);
+        const beforeVals = keys.map(k => improvement[k].before);
+        const afterVals = keys.map(k => improvement[k].after);
+
+        chart.setOption({
+            tooltip: { trigger: 'axis' },
+            legend: { data: ['治理前', '治理后'] },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: names,
+                axisLabel: {
+                    interval: 0,
+                    rotate: 20
+                }
+            },
+            yAxis: { type: 'value', name: '百分比（%）' },
+            series: [
+                { name: '治理前', type: 'bar', data: beforeVals, itemStyle: { color: '#999' } },
+                { name: '治理后', type: 'bar', data: afterVals, itemStyle: { color: '#4a7c59' } }
+            ]
+        });
+        window.addEventListener('resize', () => chart.resize());
+    }
+
+    function renderIssueChart() {
+        const chartDom = document.getElementById('issue-summary-chart');
+        const chart = echarts.init(chartDom);
+        const issueSummary = (overviewData && overviewData.issue_summary) ? overviewData.issue_summary : [];
+        const total = (overviewData && overviewData.before && overviewData.before.total_count)
+            ? overviewData.before.total_count
+            : 0;
+        const rateData = issueSummary.map(x => ({
+            name: issueDisplayName(x.issue_type),
+            value: total > 0 ? (x.count / total * 100) : 0
+        }));
+
+        chart.setOption({
+            tooltip: {
+                trigger: 'item',
+                formatter: function (params) {
+                    return `${params.name}<br/>问题率: ${params.value.toFixed(4)}%`;
+                }
+            },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: rateData.map(x => x.name),
+                axisLabel: { interval: 0, rotate: 20 }
+            },
+            yAxis: {
+                type: 'value',
+                name: '问题率（%）'
+            },
+            series: [{
+                name: '问题率',
+                type: 'bar',
+                data: rateData.map(x => Number(x.value.toFixed(4))),
+                itemStyle: { color: '#ee6666' }
+            }]
+        });
+        window.addEventListener('resize', () => chart.resize());
+    }
+
+    renderDetailTable();
+    renderOverviewChart();
+    renderIssueChart();
+</script>
+{% endblock %}

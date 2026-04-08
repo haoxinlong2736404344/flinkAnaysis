@@ -25,6 +25,8 @@
             <a href="{{ url_for('analysis2') }}">公司类型分析</a>
             <a href="{{ url_for('analysis3') }}">学历要求分析</a>
             <a href="{{ url_for('analysis4') }}">经验薪资分析</a>
+            <a href="{{ url_for('quality') }}">质量总览</a>
+            <a href="{{ url_for('quality_effect') }}">治理成效</a>
             {% if user.role == 'admin' %}
             <a href="{{ url_for('user_manage') }}">用户管理</a>
             {% endif %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="analysis-page">
+    <h2>数据治理成效对比</h2>
+    <p>展示多个批次的治理前后变化趋势（按批次时间顺序）</p>
+    <div class="data-info" style="margin-bottom: 16px;">
+        <p><strong>最新批次：</strong><span id="latestBatchId">-</span></p>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-box full-width">
+            <h3>缺失率/重复率/异常值率改善趋势（提升值，百分点）</h3>
+            <div id="effect-trend-chart" style="width: 100%; height: 420px;"></div>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-box full-width">
+            <h3>成功率指标提升趋势（提升值，百分点）</h3>
+            <div id="effect-success-chart" style="width: 100%; height: 420px;"></div>
+        </div>
+    </div>
+
+    <div class="data-table-container">
+        <h3>批次对比明细</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>批次ID</th>
+                    <th>缺失率改善</th>
+                    <th>重复率改善</th>
+                    <th>异常值率改善</th>
+                    <th>薪资解析成功率提升</th>
+                    <th>学历合法率提升</th>
+                </tr>
+            </thead>
+            <tbody id="effect-detail-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const compareData = {{ compare_data|tojson|safe }};
+    // 后端返回最新优先；折线图按时间顺序展示
+    const trendData = [...(compareData || [])].reverse();
+
+    function initLatestBatchInfo() {
+        const latest = (compareData && compareData.length > 0) ? compareData[0].batch_id : '-';
+        const el = document.getElementById('latestBatchId');
+        if (el) el.textContent = latest;
+    }
+
+    function renderEffectDetail() {
+        const tbody = document.getElementById('effect-detail-body');
+        tbody.innerHTML = '';
+        (compareData || []).forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.batch_id}</td>
+                <td>${item.improve_missing_rate.toFixed(2)}%</td>
+                <td>${item.improve_duplicate_rate.toFixed(2)}%</td>
+                <td>${item.improve_outlier_rate.toFixed(2)}%</td>
+                <td>${item.improve_salary_parse_success_rate.toFixed(2)}%</td>
+                <td>${item.improve_edu_valid_rate.toFixed(2)}%</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderTrendChart() {
+        const chart = echarts.init(document.getElementById('effect-trend-chart'));
+        const xData = trendData.map(x => x.batch_id);
+        chart.setOption({
+            tooltip: { trigger: 'axis' },
+            legend: { data: ['缺失率改善', '重复率改善', '异常值率改善'] },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: { type: 'category', data: xData, axisLabel: { rotate: 30 } },
+            yAxis: { type: 'value', name: '%' },
+            series: [
+                { name: '缺失率改善', type: 'line', data: trendData.map(x => x.improve_missing_rate), smooth: true },
+                { name: '重复率改善', type: 'line', data: trendData.map(x => x.improve_duplicate_rate), smooth: true },
+                { name: '异常值率改善', type: 'line', data: trendData.map(x => x.improve_outlier_rate), smooth: true }
+            ]
+        });
+        window.addEventListener('resize', () => chart.resize());
+    }
+
+    function renderSuccessChart() {
+        const chart = echarts.init(document.getElementById('effect-success-chart'));
+        const xData = trendData.map(x => x.batch_id);
+        chart.setOption({
+            tooltip: { trigger: 'axis' },
+            legend: { data: ['薪资解析成功率提升', '学历合法率提升'] },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: { type: 'category', data: xData, axisLabel: { rotate: 30 } },
+            yAxis: { type: 'value', name: '%' },
+            series: [
+                { name: '薪资解析成功率提升', type: 'bar', data: trendData.map(x => x.improve_salary_parse_success_rate), itemStyle: { color: '#4a7c59' } },
+                { name: '学历合法率提升', type: 'bar', data: trendData.map(x => x.improve_edu_valid_rate), itemStyle: { color: '#73c0de' } }
+            ]
+        });
+        window.addEventListener('resize', () => chart.resize());
+    }
+
+    initLatestBatchInfo();
+    renderEffectDetail();
+    renderTrendChart();
+    renderSuccessChart();
+</script>
+{% endblock %}

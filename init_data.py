@@ -7,10 +7,17 @@ from database import init_db
 from data_loader import load_excel_to_mysql
 import os
 import traceback
+import sys
 
 
 def main():
     """主函数：初始化数据库并导入数据"""
+    # Windows 控制台默认 gbk，统一切到 utf-8 避免 UnicodeEncodeError
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
     print("=" * 50)
     print("开始初始化数据库...")
     print("=" * 50)

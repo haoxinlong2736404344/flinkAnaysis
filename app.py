@@ -6,6 +6,7 @@ from analysis1_city_salary import (analysis_salary_by_city, analysis_city_salary
 from analysis2_company_type import analysis_company_type, analysis_company_city_cross, analysis_company_size_cross, analysis_top_company_requirements
 from analysis3_education_background import analysis_edu_requirement, analysis_edu_salary, analysis_edu_city_cross, analysis_edu_exp_cross
 from analysis4_experience_pay import analysis_exp_salary, analysis_exp_top_cities, analysis_salary_compliance, analysis_popular_jobs_salary_curve
+from analysis_quality import analysis_quality_overview, analysis_quality_compare
 from analysis_manager import analyze_and_store_results
 import os
 
@@ -204,6 +205,38 @@ def analysis4():
     except Exception as e:
         print(f"分析页面加载失败: {e}")
         return render_template('analysis4.html', data={"chart_data": [], "top_salary_data": {}}, exp_top_cities={}, popular_jobs_data={"job_categories": [], "salary_data": {}}, user=session['user'])
+
+
+@app.route('/quality')
+def quality():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    overview = analysis_quality_overview()
+    return render_template('quality.html', overview=overview, user=session['user'])
+
+
+@app.route('/quality_effect')
+def quality_effect():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    compare_data = analysis_quality_compare(limit=5)
+    return render_template('quality_effect.html', compare_data=compare_data, user=session['user'])
+
+
+@app.route('/api/quality/overview')
+def api_quality_overview():
+    if 'user' not in session:
+        return jsonify({})
+    batch_id = request.args.get('batch_id')
+    return jsonify(analysis_quality_overview(batch_id=batch_id))
+
+
+@app.route('/api/quality/compare')
+def api_quality_compare():
+    if 'user' not in session:
+        return jsonify([])
+    limit = request.args.get('limit', 5, type=int)
+    return jsonify(analysis_quality_compare(limit=limit if limit and limit > 0 else 5))
 
 
 @app.route('/api/analysis4/filter', methods=['GET'])
